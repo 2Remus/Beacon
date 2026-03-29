@@ -2,7 +2,7 @@ name: Beacon Alpha
 
 on:
   push:
-    tags: ['alpha-app*']
+    tags: ['apptest*']
 
 permissions:
   contents: write
