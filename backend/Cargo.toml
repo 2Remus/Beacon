@@ -1,48 +1,54 @@
-cargo-features = ["edition2021"]
-
 [package]
 name = "backend"
 version = "0.1.0"
-edition = "2024"
+edition = "2021" # Changed from 2024 to 2021 to fix your stabilization warning
 authors = ["herbydevs"]
 description = "High-performance Minecraft orchestrator control plane"
 
 [dependencies]
-home = "=0.5.9"
-
 # Web Framework & Async Runtime
 axum = { version = "0.7", features = ["ws", "macros"] }
-tokio = { version = "1.0", features = ["full"] }
+tokio = { version = "1.1", features = ["full"] }
 tower = "0.4"
 tower-http = { version = "0.5", features = ["cors", "fs", "trace"] }
 
-# Docker Engine API Client
-bollard = "0.15"
+# Docker & Infrastructure
+bollard = "0.17"
+reqwest = { version = "0.12", features = ["json", "multipart"] }
 
-# Database (PostgreSQL)
-sqlx = { version = "0.7", features = ["runtime-tokio", "tls-rustls", "postgres", "chrono", "uuid", "json"] }
+# Database (PostgreSQL ONLY - No SQLite to avoid link conflicts)
+sqlx = { version = "0.7", default-features = false, features = [
+    "runtime-tokio",
+    "tls-rustls",
+    "postgres",
+    "chrono",
+    "uuid",
+    "json",
+    "macros",
+    "migrate"
+] }
 
-# Serialization & Data Handling
+# Serialization & Data
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 chrono = { version = "0.4", features = ["serde"] }
 uuid = { version = "1.0", features = ["v4", "serde"] }
 
-# Environment & Logging
+# Utilities & Env
 dotenvy = "0.15"
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
-
-# Error Handling
 anyhow = "1.0"
 thiserror = "1.0"
-reqwest = { version = "0.12", features = ["json", "multipart"] }
-futures-util = "0.3.32"
-http = "1.4.0"
-
-async-stream = "0.3.6"
+futures-util = "0.3"
+http = "1.1"
+home = "0.5.9"
+async-stream = "0.3"
 state = "0.6.0"
-ctrlc = "3.5.2"
+ctrlc = "3.4"
+
+[target.'cfg(windows)'.dependencies]
+winapi = { version = "0.3", features = ["winerror", "minwindef", "ntstatus"] }
 
 [dev-dependencies]
 tower = { version = "0.4", features = ["util"] }
