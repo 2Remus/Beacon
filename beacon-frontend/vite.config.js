@@ -16,19 +16,10 @@ export default defineConfig(({ command }) => {
       },
     },
     // This entire block now only applies during 'npm run dev'
-    server: command === 'serve' ? {
-      host: true,
+    server: {
+      host: '127.0.0.1', // <--- Force IPv4
       port: 5173,
-      allowedHosts: [
-        'beacon.local',
-        'api.beacon.local',
-        'localhost',
-        "beacon_frontend_dev"
-      ],
-      hmr: {
-        clientPort: 80,
-        host: 'app.beacon.local'
-      }
-    } : {}
+      strictPort: true,
+    },
   }
 })
