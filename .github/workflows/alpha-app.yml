@@ -1,0 +1,116 @@
+name: Beacon Alpha 
+
+on:
+  push:
+    tags: ['apptest*']
+
+permissions:
+  contents: write
+
+jobs:
+  # STAGE 1: Build Rust Binaries (Cross-Platform)
+  build-rust-binaries:
+    strategy:
+      matrix:
+        include:
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+            suffix: .exe
+          - os: macos-latest
+            target: aarch64-apple-darwin
+            suffix: ''
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      # Build the Host (Orchestrator)
+      - name: Build beacon-host
+        working-directory: ./beacon-host
+        run: cargo build --release --target ${{ matrix.target }}
+
+      # Build the Backend (API)
+      - name: Build beacon-api
+        working-directory: ./backend
+        run: cargo build --release --target ${{ matrix.target }}
+
+      # Package Binaries for the Electron stage
+      - name: Prepare Binaries
+        shell: bash
+        run: |
+          mkdir -p ./temp-bin
+          cp ./beacon-host/target/${{ matrix.target }}/release/beacon-host${{ matrix.suffix }} ./temp-bin/
+          cp ./backend/target/${{ matrix.target }}/release/backend${{ matrix.suffix }} ./temp-bin/beacon-api${{ matrix.suffix }}
+
+      - name: Upload Binaries
+        uses: actions/upload-artifact@v4
+        with:
+          name: binaries-${{ matrix.os }}
+          path: ./temp-bin/
+
+  # STAGE 2: Build and Package Electron App
+  build-electron-app:
+    needs: build-rust-binaries
+    strategy:
+      matrix:
+        os: [windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install Dependencies
+        run: npm install
+
+      # Download the Rust binaries from the previous stage
+      - name: Download Rust Binaries
+        uses: actions/download-artifact@v4
+        with:
+          name: binaries-${{ matrix.os }}
+          path: ./bin/ # This matches your local 'sync-bins' logic
+
+      # Ensure permissions for Mac
+      - name: Set Permissions
+        if: matrix.os == 'macos-latest'
+        run: chmod +x ./bin/*
+
+      # Build the production Electron app
+      - name: Build Electron App
+        run: npm run build # Should trigger vite build + electron-builder
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload App Installer
+        uses: actions/upload-artifact@v4
+        with:
+          name: installer-${{ matrix.os }}
+          path: dist/*.exe, dist/*.dmg, dist/*.zip
+
+  # STAGE 3: Final GitHub Release
+  create-release:
+    needs: build-electron-app
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download All Installers
+        uses: actions/download-artifact@v4
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          prerelease: true
+          files: |
+            installer-windows-latest/*.exe
+            installer-macos-latest/*.dmg
+            installer-macos-latest/*.zip
+          generate_release_notes: true
