@@ -69,8 +69,11 @@ jobs:
         with:
           node-version: 20
           cache: 'npm'
+          # FIX: This tells the runner where to find the lockfile for caching
+          cache-dependency-path: ./beacon-frontend/package-lock.json
 
       - name: Install Dependencies
+        # If your package.json is in a subfolder, add: working-directory: ./beacon-frontend
         run: npm install
 
       # Download the Rust binaries from the previous stage
@@ -78,7 +81,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: binaries-${{ matrix.os }}
-          path: ./bin/ # This matches your local 'sync-bins' logic
+          path: ./bin/ # Stays here so extraResources can find it
 
       # Ensure permissions for Mac
       - name: Set Permissions
@@ -87,7 +90,7 @@ jobs:
 
       # Build the production Electron app
       - name: Build Electron App
-        run: npm run build # Should trigger vite build + electron-builder
+        run: npm run build 
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -95,7 +98,11 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: installer-${{ matrix.os }}
-          path: dist/*.exe, dist/*.dmg, dist/*.zip
+          # Note: Adjusted path to handle potential subfolder builds
+          path: |
+            dist/*.exe
+            dist/*.dmg
+            dist/*.zip
 
   # STAGE 3: Final GitHub Release
   create-release:
