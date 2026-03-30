@@ -12,7 +12,8 @@
     "sync-bins:prod": "mkdir -p bin && cp ../beacon-host/target/release/beacon-host ./bin/ && cp ../backend/target/release/backend ./bin/beacon-api && strip ./bin/beacon-host ./bin/beacon-api && chmod +x ./bin/beacon-host ./bin/beacon-api && codesign -s - -f --entitlements entitlements.plist ./bin/beacon-host && codesign -s - -f --entitlements entitlements.plist ./bin/beacon-api",
     "vite:dev": "vite",
     "electron:launch": "wait-on -t 30000 http://127.0.0.1:5173 && electron electron-main.cjs",
-    "dev": "npm run sync-bins && concurrently --kill-others \"npm run vite:dev\" \"npm run electron:launch\""
+    "dev": "npm run sync-bins && concurrently --kill-others \"npm run vite:dev\" \"npm run electron:launch\"",
+     "build": "vite build && electron-builder"
   },
   "dependencies": {
     "@heroicons/vue": "^2.2.0",
