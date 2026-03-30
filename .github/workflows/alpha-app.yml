@@ -106,7 +106,7 @@ jobs:
             beacon-frontend/dist/*.zip
 
   # STAGE 3: Final GitHub Release
-create-release:
+  create-release:
     needs: build-electron-app
     runs-on: ubuntu-latest
     permissions:
