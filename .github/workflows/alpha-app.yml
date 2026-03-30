@@ -106,19 +106,27 @@ jobs:
             beacon-frontend/dist/*.zip
 
   # STAGE 3: Final GitHub Release
-  create-release:
+create-release:
     needs: build-electron-app
     runs-on: ubuntu-latest
+    permissions:
+      contents: write # CRITICAL: Stage 3 needs permission to create the release
     steps:
       - name: Download All Installers
         uses: actions/download-artifact@v4
+        with:
+          path: ./artifacts # Put everything in one known directory
+
+      - name: List files (Debug)
+        run: ls -R ./artifacts # This lets you see exactly where the files are if it fails
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           prerelease: true
+          # Use a simpler wildcard that looks inside the artifact folders
           files: |
-            installer-windows-latest/beacon-frontend/dist/*.exe
-            installer-macos-latest/beacon-frontend/dist/*.dmg
-            installer-macos-latest/beacon-frontend/dist/*.zip
+            artifacts/installer-windows-latest/**/*.exe
+            artifacts/installer-macos-latest/**/*.dmg
+            artifacts/installer-macos-latest/**/*.zip
           generate_release_notes: true
