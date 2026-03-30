@@ -65,12 +65,11 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
-          # FIX: Point to the lock file inside the frontend directory
           cache: 'npm'
+          # THIS IS THE FIX: Explicitly pointing to the sub-directory
           cache-dependency-path: ./beacon-frontend/package-lock.json
 
       - name: Install Dependencies
-        # FIX 2: Run npm install INSIDE the frontend folder
         working-directory: ./beacon-frontend
         run: npm install
 
@@ -85,7 +84,6 @@ jobs:
         run: chmod +x ./bin/*
 
       - name: Build Electron App
-        # FIX 3: Run the build INSIDE the frontend folder
         working-directory: ./beacon-frontend
         run: npm run build
         env:
@@ -95,7 +93,6 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: installer-${{ matrix.os }}
-          # FIX 4: The 'dist' folder is inside 'beacon-frontend'
           path: |
             beacon-frontend/dist/*.exe
             beacon-frontend/dist/*.dmg
@@ -113,7 +110,6 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           prerelease: true
-          # Note: The artifacts are nested under their upload names
           files: |
             installer-windows-latest/beacon-frontend/dist/*.exe
             installer-macos-latest/beacon-frontend/dist/*.dmg
