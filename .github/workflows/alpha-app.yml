@@ -65,6 +65,9 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
+          # FIX: Point to the lock file inside the frontend directory
+          cache: 'npm'
+          cache-dependency-path: ./beacon-frontend/package-lock.json
 
       - name: Install Dependencies
         # FIX 2: Run npm install INSIDE the frontend folder
