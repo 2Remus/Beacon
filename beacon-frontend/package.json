@@ -37,12 +37,11 @@
       }
     ],
     "mac": {
-      "category": "public.app-category.utilities",
-      "target": ["dmg", "zip"],
-      "hardenedRuntime": true,
-      "gatekeeperAssess": false,
-      "entitlements": "entitlements.plist",
-      "entitlementsInherit": "entitlements.plist"
+      "identity": null,
+      "entitlements": null,
+      "entitlementsInherit": null,
+      "hardenedRuntime": false,
+      "gatekeeperAssess": false
     },
     "win": {
       "target": [
