@@ -86,13 +86,12 @@ jobs:
 
       - name: Build Electron App
         working-directory: ./beacon-frontend
-        run: npm run build -- --publish never -c.publish=never
+        # REMOVED: --publish never (the cause of the error)
+        # KEPT: -c.publish=null (the clean way to disable)
+        run: npm run build -- -c.publish=null
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          # Prevents macOS "Identity not found" crashes
           CSC_IDENTITY_AUTO_DISCOVERY: false
-          # Backup flag to force-disable publishing
-          ELECTRON_PUBLISH: never
 
       - name: Upload App Installer
         uses: actions/upload-artifact@v4
