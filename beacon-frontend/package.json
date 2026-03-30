@@ -44,6 +44,7 @@
       "gatekeeperAssess": false
     },
     "win": {
+      "icon": null,
       "target": [
         {
           "target": "nsis",
@@ -55,9 +56,9 @@
       "oneClick": false,
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
-      "installerIcon": "build/icon.ico",
-      "uninstallerIcon": "build/icon.ico"
-    },
+      "perMachine": false,
+      "installerIcon": null,
+      "uninstallerIcon": null    },
     "publish": []
   },
   "dependencies": {
