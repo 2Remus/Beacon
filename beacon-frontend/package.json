@@ -1,15 +1,17 @@
 {
   "name": "beacon-frontend",
-  "version": "0.0.0",
+  "version": "1.0.0",
+  "description": "Beacon Desktop Application",
+  "author": "Your Name <email@example.com>",
   "main": "electron-main.cjs",
   "private": true,
   "type": "module",
   "engines": {
-    "node": "^20.19.0 || >=22.12.0"
+    "node": ">=20.19.0"
   },
   "scripts": {
-    "sync-bins": "mkdir -p bin && cp ../beacon-host/target/debug/beacon-host ./bin/ && cp ../backend/target/debug/backend ./bin/beacon-api && chmod +x ./bin/beacon-host ./bin/beacon-api && codesign -s - -f ./bin/bin/beacon-host && codesign -s - -f ./bin/beacon-api",
-    "sync-bins:prod": "mkdir -p bin && cp ../beacon-host/target/release/beacon-host ./bin/ && cp ../backend/target/release/backend ./bin/beacon-api && strip ./bin/beacon-host ./bin/beacon-api && chmod +x ./bin/beacon-host ./bin/beacon-api && codesign -s - -f --entitlements entitlements.plist ./bin/beacon-host && codesign -s - -f --entitlements entitlements.plist ./bin/beacon-api",
+    "sync-bins": "mkdir -p bin && cp ../beacon-host/target/debug/beacon-host ./bin/ && cp ../backend/target/debug/backend ./bin/beacon-api && chmod +x ./bin/beacon-host ./bin/beacon-api",
+    "sync-bins:prod": "mkdir -p bin && cp ../beacon-host/target/release/beacon-host ./bin/ && cp ../backend/target/release/backend ./bin/beacon-api && strip ./bin/beacon-host ./bin/beacon-api && chmod +x ./bin/beacon-host ./bin/beacon-api",
     "vite:dev": "vite",
     "electron:launch": "wait-on -t 30000 http://127.0.0.1:5173 && electron electron-main.cjs",
     "dev": "npm run sync-bins && concurrently --kill-others \"npm run vite:dev\" \"npm run electron:launch\"",
@@ -19,8 +21,14 @@
     "appId": "com.beacon.app",
     "productName": "Beacon",
     "directories": {
-      "output": "dist"
+      "output": "dist",
+      "buildResources": "build"
     },
+    "files": [
+      "dist/**/*",
+      "electron-main.cjs",
+      "package.json"
+    ],
     "extraResources": [
       {
         "from": "bin/",
@@ -47,7 +55,9 @@
     "nsis": {
       "oneClick": false,
       "allowToChangeInstallationDirectory": true,
-      "createDesktopShortcut": true
+      "createDesktopShortcut": true,
+      "installerIcon": "build/icon.ico",
+      "uninstallerIcon": "build/icon.ico"
     },
     "publish": []
   },
@@ -64,9 +74,11 @@
     "vue-router": "^4.6.3"
   },
   "devDependencies": {
+    "@electron/rebuild": "^3.7.1",
     "@vitejs/plugin-vue": "^6.0.2",
     "concurrently": "^9.2.1",
     "electron": "^41.1.0",
+    "electron-builder": "^26.8.1",
     "vite": "^7.2.4",
     "vite-plugin-vue-devtools": "^8.0.5",
     "wait-on": "^9.0.4"
