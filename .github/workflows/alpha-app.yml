@@ -8,7 +8,7 @@ permissions:
   contents: write
 
 jobs:
-  # STAGE 1: Build Rust Binaries (Cross-Platform)
+  # STAGE 1: Build Rust Binaries (Sidecars)
   build-rust-binaries:
     strategy:
       matrix:
@@ -29,17 +29,14 @@ jobs:
         with:
           targets: ${{ matrix.target }}
 
-      # Build the Host (Orchestrator)
       - name: Build beacon-host
         working-directory: ./beacon-host
         run: cargo build --release --target ${{ matrix.target }}
 
-      # Build the Backend (API)
       - name: Build beacon-api
         working-directory: ./backend
         run: cargo build --release --target ${{ matrix.target }}
 
-      # Package Binaries for the Electron stage
       - name: Prepare Binaries
         shell: bash
         run: |
@@ -69,26 +66,28 @@ jobs:
         with:
           node-version: 20
           cache: 'npm'
+          # CRITICAL: Path to lockfile for caching to work
           cache-dependency-path: ./beacon-frontend/package-lock.json
 
       - name: Install Dependencies
+        working-directory: ./beacon-frontend
         run: npm install
 
-      # Download the Rust binaries from the previous stage
+      # Download the Rust binaries into the root /bin folder
       - name: Download Rust Binaries
         uses: actions/download-artifact@v4
         with:
           name: binaries-${{ matrix.os }}
-          path: ./bin/ # This matches your local 'sync-bins' logic
+          path: ./bin/
 
-      # Ensure permissions for Mac
       - name: Set Permissions
         if: matrix.os == 'macos-latest'
         run: chmod +x ./bin/*
 
-      # Build the production Electron app
+      # Build Electron App (vite build + electron-builder)
       - name: Build Electron App
-        run: npm run build # Should trigger vite build + electron-builder
+        working-directory: ./beacon-frontend
+        run: npm run build
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -96,7 +95,11 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: installer-${{ matrix.os }}
-          path: dist/*.exe, dist/*.dmg, dist/*.zip
+          # Path relative to repo root, where builder puts them
+          path: |
+            beacon-frontend/dist/*.exe
+            beacon-frontend/dist/*.dmg
+            beacon-frontend/dist/*.zip
 
   # STAGE 3: Final GitHub Release
   create-release:
@@ -111,7 +114,7 @@ jobs:
         with:
           prerelease: true
           files: |
-            installer-windows-latest/*.exe
-            installer-macos-latest/*.dmg
-            installer-macos-latest/*.zip
+            installer-windows-latest/beacon-frontend/dist/*.exe
+            installer-macos-latest/beacon-frontend/dist/*.dmg
+            installer-macos-latest/beacon-frontend/dist/*.zip
           generate_release_notes: true
