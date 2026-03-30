@@ -43,6 +43,7 @@ jobs:
           mkdir -p ./temp-bin
           cp ./beacon-host/target/${{ matrix.target }}/release/beacon-host${{ matrix.suffix }} ./temp-bin/
           cp ./backend/target/${{ matrix.target }}/release/backend${{ matrix.suffix }} ./temp-bin/beacon-api${{ matrix.suffix }}
+
       - name: Upload Binaries
         uses: actions/upload-artifact@v4
         with:
@@ -64,7 +65,10 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
-     - name: Install Dependencies
+          cache: 'npm'
+          cache-dependency-path: ./beacon-frontend/package-lock.json
+
+      - name: Install Dependencies
         working-directory: ./beacon-frontend
         run: |
           npm install
@@ -94,6 +98,7 @@ jobs:
             beacon-frontend/dist/*.exe
             beacon-frontend/dist/*.dmg
             beacon-frontend/dist/*.zip
+
   # STAGE 3: Final GitHub Release
   create-release:
     needs: build-electron-app
