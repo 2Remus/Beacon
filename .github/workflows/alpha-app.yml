@@ -75,7 +75,10 @@ jobs:
 
       - name: Install Dependencies
         # If your package.json is in a subfolder, add: working-directory: ./beacon-frontend
-        run: npm install
+        run: |
+          npm install
+          # Force install electron-builder in the runner environment
+          npm install -g electron-builder
 
       # Download the Rust binaries from the previous stage
       - name: Download Rust Binaries
