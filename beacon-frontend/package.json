@@ -13,7 +13,7 @@
     "vite:dev": "vite",
     "electron:launch": "wait-on -t 30000 http://127.0.0.1:5173 && electron electron-main.cjs",
     "dev": "npm run sync-bins && concurrently --kill-others \"npm run vite:dev\" \"npm run electron:launch\"",
-    "build": "vite build && electron-builder -p never"
+    "build": "vite build && electron-builder --publish=never"
   },
   "dependencies": {
     "@heroicons/vue": "^2.2.0",
