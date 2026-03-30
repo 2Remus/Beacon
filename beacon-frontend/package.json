@@ -49,7 +49,7 @@
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true
     },
-    "publish": null
+    "publish": [],
   },
   "dependencies": {
     "@heroicons/vue": "^2.2.0",
