@@ -13,7 +13,42 @@
     "vite:dev": "vite",
     "electron:launch": "wait-on -t 30000 http://127.0.0.1:5173 && electron electron-main.cjs",
     "dev": "npm run sync-bins && concurrently --kill-others \"npm run vite:dev\" \"npm run electron:launch\"",
-    "build": "vite build && electron-builder --publish=never"
+    "build": {
+      "appId": "com.beacon.app",
+      "productName": "Beacon",
+      "directories": {
+        "output": "dist"
+      },
+      "extraResources": [
+        {
+          "from": "bin/",
+          "to": "bin/",
+          "filter": ["**/*"]
+        }
+      ],
+      "mac": {
+        "category": "public.app-category.utilities",
+        "target": ["dmg", "zip"],
+        "hardenedRuntime": true,
+        "gatekeeperAssess": false,
+        "entitlements": "entitlements.plist",
+        "entitlementsInherit": "entitlements.plist"
+      },
+      "win": {
+        "target": [
+          {
+            "target": "nsis",
+            "arch": ["x64"]
+          }
+        ]
+      },
+      "nsis": {
+        "oneClick": false,
+        "allowToChangeInstallationDirectory": true,
+        "createDesktopShortcut": true
+      },
+      "publish": null
+    }
   },
   "dependencies": {
     "@heroicons/vue": "^2.2.0",
