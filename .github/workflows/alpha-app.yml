@@ -66,14 +66,14 @@ jobs:
         with:
           node-version: 20
           cache: 'npm'
-          # CRITICAL: Path to lockfile for caching to work
+          # FIX 1: Tell GitHub where the lockfile is for CACHING
           cache-dependency-path: ./beacon-frontend/package-lock.json
 
       - name: Install Dependencies
+        # FIX 2: Run npm install INSIDE the frontend folder
         working-directory: ./beacon-frontend
         run: npm install
 
-      # Download the Rust binaries into the root /bin folder
       - name: Download Rust Binaries
         uses: actions/download-artifact@v4
         with:
@@ -84,8 +84,8 @@ jobs:
         if: matrix.os == 'macos-latest'
         run: chmod +x ./bin/*
 
-      # Build Electron App (vite build + electron-builder)
       - name: Build Electron App
+        # FIX 3: Run the build INSIDE the frontend folder
         working-directory: ./beacon-frontend
         run: npm run build
         env:
@@ -95,7 +95,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: installer-${{ matrix.os }}
-          # Path relative to repo root, where builder puts them
+          # FIX 4: The 'dist' folder is inside 'beacon-frontend'
           path: |
             beacon-frontend/dist/*.exe
             beacon-frontend/dist/*.dmg
@@ -113,6 +113,7 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           prerelease: true
+          # Note: The artifacts are nested under their upload names
           files: |
             installer-windows-latest/beacon-frontend/dist/*.exe
             installer-macos-latest/beacon-frontend/dist/*.dmg
