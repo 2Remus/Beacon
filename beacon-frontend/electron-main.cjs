@@ -131,6 +131,7 @@ function startApi(mainWindow, binPath, binaryExt) {
     });
 }
 
+
 function createWindow() {
     // Splash screen configuration
     splash = new BrowserWindow({
@@ -149,14 +150,30 @@ function createWindow() {
     mainWindow = new BrowserWindow({
         width: 1280,
         height: 800,
-        show: false,
+        show: false, // Keep this false to prevent the white flash
         titleBarStyle: 'hidden',
-        backgroundColor: '#1e2126', // Matches your "Cloud Instances" theme
+        backgroundColor: '#1e2126',
         webPreferences: {
             preload: path.join(__dirname, 'preload.js'),
             contextIsolation: true
         }
     });
+
+    // LOAD LOGIC
+    if (isDev) {
+        mainWindow.loadURL('http://127.0.0.1:5173');
+    } else {
+        // Points to the dist folder created by Vite
+        mainWindow.loadFile(path.join(__dirname, 'dist/index.html'));
+    }
+
+    // THE FIX: Show window when content is ready
+    mainWindow.once('ready-to-show', () => {
+        splash.close(); // Close the splash screen
+        mainWindow.show(); // Finally show the main window
+    });
+
+    updateSystemHosts(mainWindow);
 
     mainWindow.loadURL('http://127.0.0.1:5173');
 
