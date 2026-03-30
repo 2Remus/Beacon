@@ -86,7 +86,7 @@ jobs:
 
       - name: Build Electron App
         working-directory: ./beacon-frontend
-        run: npm run build -- --publish never -c.publish=null
+        run: npm run build -- --publish never -c.publish=never
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           # Prevents macOS "Identity not found" crashes
