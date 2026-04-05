@@ -79,29 +79,12 @@ const selectedPlayer = ref(null)
  */
 const fetchServers = () => {
   isLoading.value = true;
-  clusterStream = new EventSource("http://api.beacon.local/api/v1/servers/get");
-
-  clusterStream.onmessage = (event) => {
-    try {
-      const parsed = JSON.parse(event.data);
-      isLoading.value = false;
-      instances.value = Array.isArray(parsed) ? parsed : [];
-
-      if (activeInstance.value) {
-        const updated = instances.value.find(s => s.id === activeInstance.value.id);
-        if (updated) activeInstance.value = updated;
-      }
-    } catch (err) {
-      console.error("Cluster Sync Parse Error:", err);
-    }
-  };
-
-  clusterStream.onerror = (err) => {
-    console.error("Cluster SSE Error:", err);
-    clusterStream.close();
-    isLoading.value = false;
-    error.value = "Lost connection to Cluster Controller.";
-  };
+  try{
+    const res = window.ElectronAPI.getServers();
+  }
+  catch(err){
+    console.error(err);
+  }
 };
 
 /**
@@ -224,6 +207,9 @@ onMounted(() => {
   fetchServers();
   window.addEventListener('click', closeMenus);
   console.log(import.meta.env.VITE_API_URL)
+  window.electronAPI.onServerUpdate((data) => {
+    servers.value = data;
+  });
 });
 
 onUnmounted(() => {

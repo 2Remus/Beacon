@@ -2,9 +2,9 @@ use axum::Router;
 use std::sync::Arc;
 use crate::state::AppState;
 
-// Declare the auth module
-pub mod auth;
+mod backend;
 mod server;
+
 
 /// The central API router for Beacon v2.
 ///
@@ -15,6 +15,7 @@ pub fn api_router() -> Router<Arc<AppState>> {
         // Auth endpoints: /api/v1/auth/login, /api/v1/auth/callback, etc.
         // .nest("/auth", auth::create_router())
         .nest("/servers", server::create_router())
+        .nest("/cloudflare",backend::router())
 
     // Placeholder for future Minecraft instance management
     // .nest("/instances", instances::router())

@@ -1,0 +1,51 @@
+use serde::{Deserialize, Serialize};
+use std::fs;
+use std::env;
+use std::path::{Path, PathBuf};
+
+fn get_app_data_path() -> PathBuf {
+    #[cfg(target_os = "windows")]{
+        Pathbuf::from(env::var("APPDATA").unwrap()).join("Beacon")
+    }
+    #[cfg(target_os = "macos")]{
+        let home = env::var("HOME").unwrap();
+            PathBuf::from(&home)
+                .join("Library")
+                .join("Application Support")
+                .join("Beacon")
+    }
+}
+
+
+
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct MinecraftServer {
+    pub id: String,
+    pub name: String,
+    pub instance_path: String,
+    pub version: String,
+    pub status: String,
+    pub server_type: String,
+    pub port: u32,
+    pub ram: u32,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct ServerRegistry {
+    pub instances: Vec<MinecraftServer>,
+}
+
+impl ServerRegistry {
+    pub fn load() -> Self {
+        let path = get_app_data_path().join("servers.json");
+        let data = fs::read_to_string(path).unwrap_or_else(|_| r#"{"instances": []}"#.to_string());
+        serde_json::from_str(&data).unwrap()
+    }
+
+    pub fn save(&self) -> std::io::Result<()> {
+        let path = get_app_data_path().join("servers.json");
+        let data = serde_json::to_string_pretty(self)?;
+        fs::write(path, data)
+    }
+}

@@ -1,0 +1,19 @@
+{
+  "name": "beacon-native",
+  "version": "1.0.0",
+  "main": "index.js",
+  "types": "index.d.ts",
+  "napi": {
+    "name": "beacon",
+    "package": {
+      "name": "beacon-native"
+    }
+  },
+  "scripts": {
+    "build": "napi build --platform --release",
+    "build:debug": "napi build --platform"
+  },
+  "devDependencies": {
+    "@napi-rs/cli": "^3.0.0"
+  }
+}

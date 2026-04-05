@@ -2,6 +2,7 @@
 import { RouterView } from 'vue-router';
 
 
+
 </script>
 
 <style scoped>
@@ -36,3 +37,4 @@ import { RouterView } from 'vue-router';
   </header>
   <RouterView/>
 </template>
+
