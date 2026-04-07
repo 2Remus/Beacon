@@ -33,23 +33,19 @@ The Sidecars: Managed sub-processes including cloudflared for secure tunneling a
 
 🔒 Tunnel-Ready: Force-binds instances to loopback (127.0.0.1) by default, preparing them for secure public exposure via Cloudflare Sidecars.
 
-🚀 M3 Optimized: Specifically architected to leverage high-performance silicon, ensuring near-instant I/O and process execution.
-
-💾 Registry System: A persistent JSON-based database that tracks every instance, its version, its provider (Vanilla/Paper/Fabric), and its resource allocation.
+💾 Registry System: A persistent JSON-based database that tracks every instance, its version, its provider (Vanilla/Paper/Fabric/Forge), and its resource allocation.
 
 📂 Project Structure
-src-rust/ — The Heart. Native logic for server spawning and filesystem orchestration.
+  backendv2/ — The Heart. Native logic for server spawning and filesystem orchestration.
 
-src/ — The Face. Vue 3 components, state management, and "Liquid Glass" styling.
+frontendv2/ — The Face. Vue 3 components, state management, and "Liquid Glass" styling.
 
-electron/ — The Bridge. Main process logic and IPC handlers.
-
-containers/ — The Vault. Where your isolated Minecraft instances live.
+(found after install )containers/ — The Vault. Where your isolated Minecraft instances live.
 
 🚦 Getting Started
 Prerequisites
 
-Rust: Latest stable toolchain.
+Rust: 2021.
 
 Node.js: v18 or higher.
 
@@ -65,15 +61,15 @@ cd beacon
 
 Install JS Dependencies:
 
-npm install
+yarn install
 
 Compile the Native Core:
 
-npm run build:rust
+npm run build
 
 Launch Beacon:
 
-npm run dev
+yarn dev
 
 📜 Development Roadmap
 [x] Native Rust-to-JS Bridge Implementation
