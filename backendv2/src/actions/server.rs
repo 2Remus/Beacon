@@ -12,70 +12,86 @@ use crate::containerizer::operations::create_container_env;
 use crate::models::ServerStorage::MinecraftServer;
 
 use crate::database::add_server::add_server;
+use crate::models::container::ContainerConfig;
+use crate::models::ServerStorage::Provider;
+use tokio::fs::File as AsyncFile;
+use tokio::io::AsyncWriteExt;
 
 #[napi]
 pub async fn create_server(
     id: String,
     name: String,
-    provider: String, // "paper", "vanilla", "fabric"
+    provider: Provider,
     version: String,
     ram_mb: u32,
-    port: u32
+    port: u32,
+    online_mode: bool,
 ) -> napi::Result<String> {
 
     // 1. RESOLVE & DOWNLOAD (The Pull Step)
-    // We check the cache first. If missing, we hit the Manifest API.
+    // Pulls from cache or hits the API (Paper/Fabric/Vanilla)
     let jar_path = ensure_jar_exists(&provider, &version).await?;
 
-    // 2. PROVISION (The Container Step)
-    // This creates the /containers/id folder and the symlink to the jar we just got.
-    let container_path = create_container_env(&id, &jar_path, port)?;
+    // 2. BUILD CONFIG (The Environment Metadata)
+    // We initialize fully here to avoid the "partially assigned" E0381 error.
+    let container_config = ContainerConfig {
+        server_id: id.clone(), // Clone here so we can use 'id' again later
+        jar_path: jar_path.to_string_lossy().into_owned(),
+        port,
+        ram_mb,
+        enable_rcon: true,
+        online_mode,
+    };
 
-    // 3. REGISTER (The Database Step)
+    // 3. PROVISION (The Filesystem Layer)
+    // Creates the /containers/id folder, symlinks the JAR, and writes server.properties
+    let container_path = create_container_env(container_config)?;
+
+    // 4. REGISTER (The Persistence Layer)
     let new_server = MinecraftServer {
         id: id.clone(),
-        name: name.clone(),
-        version: version.clone(),
-        server_type: provider.clone(),
+        name,
+        version,
+        provider,
         port,
         ram: ram_mb,
+        // Using the actual path returned by the provisioner
         instance_path: container_path.to_string_lossy().to_string(),
         status: "stopped".to_string(),
     };
 
     let db_path = crate::get_resource_path()?.join("db.json");
-    add_server(new_server, db_path)?;
+    add_server(&new_server, db_path)?;
 
-    Ok(format!("Server {} ({}) ready!", id, version))
+    Ok(format!("Server {} ({}) provisioned at {:?}", id, &new_server.version, container_path))
 }
 
 
 #[napi]
-pub fn get_servers(callback: ThreadsafeFunction<Vec<String>>) -> napi::Result<()> {
-    let db_path = env::current_exe().unwrap().parent().unwrap().join("db.json");
+pub async fn get_servers() -> napi::Result<Vec<MinecraftServer>> {
+    let db_path = crate::get_resource_path()?.join("db.json");
 
-    // Correct syntax: std::thread::spawn
-    std::thread::spawn(move || {
-        let mut last_content = String::new();
-        loop {
-            if let Ok(content) = std::fs::read_to_string(&db_path) {
-                if content != last_content {
-                    last_content = content.clone();
-                    if let Ok(servers) = serde_json::from_str::<Vec<String>>(&content) {
-                        // This pushes data to your Electron Dashboard
-                        callback.call(Ok(servers), ThreadsafeFunctionCallMode::Blocking);
-                    }
-                }
-            }
-            std::thread::sleep(std::time::Duration::from_millis(1000));
-        }
-    });
+    // We don't spawn a standard thread manually here;
+    // we use tokio (which napi-rs uses under the hood for async)
+    // to poll until the file is ready or just read it once.
 
-    Ok(())
+    if !db_path.exists() {
+        return Err(Error::from_reason("Database not found").into());
+    }
+
+    // Instead of a loop that disappears, we just perform the read.
+    // If you need to wait for a specific condition, do it here.
+        let content = std::fs::read_to_string(&db_path)
+            .map_err(|e| Error::from_reason(e.to_string()))?;
+
+        let servers: Vec<MinecraftServer> = serde_json::from_str(&content)
+            .map_err(|e| Error::from_reason(e.to_string()))?;
+
+    Ok(servers)
 }
 
 
-async fn ensure_jar_exists(provider: &str, version: &str) -> napi::Result<PathBuf> {
+async fn ensure_jar_exists(provider: &Provider, version: &str) -> napi::Result<PathBuf> {
     let cache_dir = crate::get_resource_path()?.join("cache");
 
     // Ensure the cache directory exists before we try to save files to it
@@ -89,6 +105,9 @@ async fn ensure_jar_exists(provider: &str, version: &str) -> napi::Result<PathBu
     if target_path.exists() {
         return Ok(target_path);
     }
+    
+    
+    
 
     // Create a client with a User-Agent (Required for Paper v3)
     let client = Client::builder()
@@ -97,99 +116,92 @@ async fn ensure_jar_exists(provider: &str, version: &str) -> napi::Result<PathBu
         .map_err(|e| napi::Error::from_reason(e.to_string()))?;
 
     let download_url = match provider {
-        "paper" => {
-            // 1. Get version builds from the new Fill v3 API
-            let api_url = format!("https://fill.papermc.io/v3/projects/paper/versions/{}", version);
-            let resp: Value = client.get(api_url).send().await
-                .map_err(|e| napi::Error::from_reason(e.to_string()))?.json().await
-                .map_err(|e| napi::Error::from_reason(e.to_string()))?;
+        Provider::Paper => {
+            // 1. Get builds for the version (using stable v2 API)
+            let api_url = format!("https://api.papermc.io/v2/projects/paper/versions/{}", version);
+            let resp: Value = client.get(&api_url).send().await
+                .map_err(|e| napi::Error::from_reason(format!("Paper API failure: {}", e)))?
+                .json().await
+                .map_err(|e| napi::Error::from_reason(format!("Invalid JSON from Paper: {}", e)))?;
 
             let build_id = resp["builds"].as_array()
                 .and_then(|b| b.last())
                 .and_then(|last| last.as_u64())
-                .ok_or_else(|| napi::Error::from_reason("No builds found for this version"))?;
+                .ok_or_else(|| napi::Error::from_reason(format!("No Paper builds found for version {}", version)))?;
 
-            // 2. Get specific build info
-            let build_url = format!("https://fill.papermc.io/v3/projects/paper/versions/{}/builds/{}", version, build_id);
-            let build_info: Value = client.get(build_url).send().await
-                .map_err(|e| napi::Error::from_reason(e.to_string()))?.json().await
+            // 2. Get build info for the filename
+            let build_url = format!("{}/builds/{}", api_url, build_id);
+            let build_info: Value = client.get(&build_url).send().await
+                .map_err(|e| napi::Error::from_reason(e.to_string()))?
+                .json().await
                 .map_err(|e| napi::Error::from_reason(e.to_string()))?;
 
-            let file_name = build_info["downloads"]["server:default"]["name"].as_str()
-                .ok_or_else(|| napi::Error::from_reason("Failed to find filename"))?;
+            let file_name = build_info["downloads"]["application"]["name"].as_str()
+                .ok_or_else(|| napi::Error::from_reason("Failed to resolve Paper filename"))?;
 
-            // 3. Construct final download link
-            format!(
-                "https://fill-data.papermc.io/v3/projects/paper/versions/{}/builds/{}/downloads/{}",
-                version, build_id, file_name
-            )
+            // 3. Final URL
+            format!("{}/downloads/{}", &build_url, file_name)
         },
-        "vanilla" => {
-            let manifest: Value = client
-                .get("https://launchermeta.mojang.com/mc/game/version_manifest.json")
-                .send()
-                .await
-                .map_err(|e| napi::Error::from_reason(format!("Network request failed: {}", e)))?
-                .json()
-                .await
-                .map_err(|e| napi::Error::from_reason(format!("Failed to parse JSON: {}", e)))?;
 
-            let version_entry = manifest["versions"].as_array()
+        Provider::Vanilla => {
+            let manifest_url = "https://launchermeta.mojang.com/mc/game/version_manifest.json";
+            let manifest: Value = client.get(manifest_url).send().await
+                .map_err(|e| napi::Error::from_reason(e.to_string()))?
+                .json().await
+                .map_err(|e| napi::Error::from_reason(e.to_string()))?;
+
+            let version_url = manifest["versions"].as_array()
                 .and_then(|v| v.iter().find(|entry| entry["id"] == version))
-                .ok_or_else(|| napi::Error::from_reason("Version not found"))?;
+                .and_then(|entry| entry["url"].as_str())
+                .ok_or_else(|| napi::Error::from_reason(format!("Vanilla version {} not found", version)))?;
 
-            let metadata: Value = client
-                .get(version_entry["url"].as_str().unwrap())
-                .send()
-                .await
-                .map_err(|e| napi::Error::from_reason(format!("Network error: {}", e)))? // Step 1: Send
-                .json()
-                .await
-                .map_err(|e| napi::Error::from_reason(format!("JSON error: {}", e)))?;  // Step 2: Parse
+            let metadata: Value = client.get(version_url).send().await
+                .map_err(|e| napi::Error::from_reason(e.to_string()))?
+                .json().await
+                .map_err(|e| napi::Error::from_reason(e.to_string()))?;
 
             metadata["downloads"]["server"]["url"].as_str()
-                .ok_or_else(|| napi::Error::from_reason("No server download found"))?
-                .to_string()
+                .map(|s| s.to_string())
+                .ok_or_else(|| napi::Error::from_reason("No Vanilla server download link found"))?
         },
-        "forge" => {
-            // Note: This downloads the installer. We'll handle execution below.
+
+        Provider::Forge => {
+            // Note: This is the installer. Post-download, you must run this with 'java -jar' 
+            // to generate the actual server files in the instance directory.
             format!(
                 "https://maven.minecraftforge.net/net/minecraftforge/forge/{0}/forge-{0}-installer.jar",
                 version
             )
         },
-        _ => return Err(napi::Error::from_reason("Unsupported provider")),
+
+        _ => return Err(napi::Error::from_reason("Unsupported provider selected")),
     };
 
-    // --- EXECUTE DOWNLOAD ---
+
+
+
     let response = client.get(&download_url).send().await
-        .map_err(|e| napi::Error::from_reason(format!("Download request failed: {}", e)))?;
+        .map_err(|e| napi::Error::from_reason(format!("Network error: {}", e)))?;
 
-    let mut content =  Cursor::new(response.bytes().await
-        .map_err(|e| napi::Error::from_reason(format!("Failed to read bytes: {}", e)))?);
-
-    let mut dest = File::create(&target_path)
-        .map_err(|e| napi::Error::from_reason(format!("Failed to create jar file: {}", e)))?;
-
-    std::io::copy(&mut content, &mut dest).map_err(|e| napi::Error::from_reason(e.to_string()))?;
-
-
-    if provider == "forge" {
-        let temp_install_dir = cache_dir.join(format!("forge-temp-{}", version));
-        fs::create_dir_all(&temp_install_dir)?;
-
-        let status = Command::new("java")
-            .arg("-jar")
-            .arg(&target_path)
-            .arg("--installServer")
-            .current_dir(&temp_install_dir)
-            .status()
-            .map_err(|e| napi::Error::from_reason(format!("Java not found or Forge install failed: {}", e)))?;
-
-        if status.success() {
-            println!("Forge installed successfully in {:?}", temp_install_dir);
-        }
+    // Check if the status is actually 200 OK
+    if !response.status().is_success() {
+        return Err(napi::Error::from_reason(format!("Server returned error: {}", response.status())));
     }
+
+    let bytes = response.bytes().await
+        .map_err(|e| napi::Error::from_reason(format!("Failed to read stream: {}", e)))?;
+
+    // Create the file using Tokyo's async file handler
+    let mut dest = AsyncFile::create(&target_path).await
+        .map_err(|e| napi::Error::from_reason(format!("Disk error: {}", e)))?;
+
+    dest.write_all(&bytes).await
+        .map_err(|e| napi::Error::from_reason(format!("Write failed: {}", e)))?;
+
+    // Ensure the data is flushed to the SSD before returning to Electron
+    dest.sync_all().await
+        .map_err(|e| napi::Error::from_reason(format!("Flush failed: {}", e)))?;
+
 
     Ok(target_path)
 }

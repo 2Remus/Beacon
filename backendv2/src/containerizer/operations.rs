@@ -4,61 +4,125 @@ use crate::get_resource_path;
 use std::fs;
 use std::process::{Child, Command, Stdio};
 use std::io::Write;
+use std::os::unix::process::CommandExt;
 use napi_derive::napi;
 use std::sync::Mutex;   
 use lazy_static::lazy_static;
-use napi::Error;
+use napi::{Error,Result};
+use crate::models::container::ContainerConfig;
+use crate::containerizer::containers::SpawnResult;
+
+
 
 lazy_static! {
     // Maps Server ID (e.g., "Survival-01") to the OS Process
     static ref RUNNING_SERVERS: Mutex<HashMap<String, Child>> = Mutex::new(HashMap::new());
 }
 
-pub fn create_container_env(
-    server_id: &str,
-    jar_path: &Path,
-    allocated_port: u32 // Added: Defensive networking
-) -> napi::Result<PathBuf> {
-    let container_dir = get_resource_path()?.join("containers").join(server_id);
 
-    // 1. Structural Isolation
-    fs::create_dir_all(&container_dir.join("world"))?;
-    fs::create_dir_all(&container_dir.join("logs"))?;
-    fs::create_dir_all(&container_dir.join("plugins"))?; // Added: Essential for MC
 
-    // 2. The "Virtual" File Link
-    let local_jar = container_dir.join("server.jar");
-    if !local_jar.exists() {
-        #[cfg(unix)] { std::os::unix::fs::symlink(jar_path, &local_jar)?; }
-        #[cfg(windows)] { std::os::windows::fs::symlink_file(jar_path, &local_jar)?; }
+pub fn create_container_env(config: ContainerConfig) -> napi::Result<PathBuf> {
+    let root = get_resource_path()?.join("containers").join(&config.server_id);
+    let jar_source = Path::new(&config.jar_path);
+
+    // 1. Recursive Directory Initialization
+    // We create the entire tree in one go to ensure paths exist for symlinks
+    let dirs = ["world", "logs", "plugins", "mods", "config"];
+    for dir in &dirs {
+        fs::create_dir_all(root.join(dir))
+            .map_err(|e| Error::from_reason(format!("FS Error: {}", e)))?;
     }
 
-    // 3. Injecting the "Environment Variables" (Properties)
-    let props = format!("server-port={}\nquery.port={}\nenable-query=true\n", allocated_port, allocated_port);
-    fs::write(container_dir.join("server.properties"), props)?;
+    let target_jar = root.join("server.jar");
+    if !target_jar.exists() {
+        #[cfg(unix)]
+        std::os::unix::fs::symlink(jar_source, &target_jar)
+            .map_err(|e| Error::from_reason(format!("Symlink failed: {}", e)))?;
 
-    // 4. Permission Check (The "Lock")
-    fs::write(container_dir.join("eula.txt"), "eula=true")?;
+        #[cfg(windows)]
+        std::os::windows::fs::symlink_file(jar_source, &target_jar)
+            .map_err(|e| Error::from_reason(format!("Symlink failed: {}", e)))?;
+    }
 
-    Ok(container_dir)
+    // 3. Properties Injection (The "Configuration Layer")
+    // We use a Map-like approach here to make it easier to add more settings later
+    let mut properties = Vec::new();
+    properties.push(format!("server-port={}", config.port));
+    properties.push(format!("query.port={}", config.port));
+    properties.push("server-ip=127.0.0.1".to_string()); // Force local binding for Tunnel security
+    properties.push("enable-query=true".to_string());
+    properties.push(format!("online-mode={}", config.online_mode));
+    properties.push("gui=false".to_string());
+
+    if config.enable_rcon {
+        properties.push("enable-rcon=true".to_string());
+        properties.push("rcon.password=beacon_secure_pass".to_string());
+    }
+
+    fs::write(root.join("server.properties"), properties.join("\n"))?;
+
+    // 4. Legal & Runtime Requirements
+    fs::write(root.join("eula.txt"), "eula=true")?;
+
+    // Create a start script helper for the JVM
+    let jvm_args = format!(
+        "java -Xmx{}M -Xms{}M -jar server.jar nogui",
+        config.ram_mb, config.ram_mb
+    );
+    fs::write(root.join("start.sh"), jvm_args)?;
+
+    Ok(root)
 }
 
+#[napi]
+pub fn spawn_container(id: String, bin_dir: String, ram: u32) -> Result<SpawnResult> {
+    let base_path = Path::new(&bin_dir);
 
-pub fn spawn_container(container_dir: &Path, ram: u32) -> napi::Result<(Child)>{
-    let java_bin = get_resource_path()?.join("runtime/java21/bin/java");
+    // 1. Path Guard: Ensure the directory and server.jar actually exist
+    if !base_path.exists() {
+        return Err(Error::from_reason(format!("Directory not found: {}", bin_dir)));
+    }
 
-    let child =  Command::new(java_bin)
-        .current_dir(container_dir)
+    let jar_path = base_path.join("server.jar");
+    if !jar_path.exists() {
+        return Err(Error::from_reason("server.jar missing from instance directory"));
+    }
+
+    // 2. Command Construction: Explicitly call 'java'
+    // We use absolute paths where possible to avoid working directory ambiguity
+    let mut cmd = Command::new("java");
+
+    cmd.current_dir(base_path)
         .args(&[
-            &format!("-Xmx{}M",  ram),
-            &format!("Xms{}M", ram),
-            "-jar", "server.jar", "nogui"
+            &format!("-Xmx{}M", ram),
+            &format!("-Xms{}M", ram),
+            "-Dfile.encoding=UTF-8",
+            "-jar",
+            "server.jar",
+            "nogui",
         ])
         .stdout(Stdio::piped())
-        .stderr(Stdio::piped())
-        .spawn();
+        .stderr(Stdio::piped());
 
-    Ok(child?)
+    // --- Unix (macOS & Linux) Attachment ---
+    #[cfg(unix)]
+    {
+        // Sets the process group ID to the child's PID.
+        // This allows us to kill the whole group later.
+        cmd.process_group(0);
+    }
+
+    let child = cmd.spawn().map_err(|e| Error::from_reason(e.to_string()))?;
+
+
+    // 3. Metadata Return
+    // We return the PID so the Vue frontend can map this to the UI 'Active' state
+    let pid = child.id();
+
+    Ok(SpawnResult {
+        pid,
+        log_path: base_path.join("logs/latest.log").to_string_lossy().into_owned(),
+    })
 }
 
 

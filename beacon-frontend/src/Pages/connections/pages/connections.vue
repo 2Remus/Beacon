@@ -29,8 +29,8 @@ const fetchTunnelData = async () => {
 const toggleTunnel = async () => {
   const action = tunnelStatus.value === 'active' ? 'stop' : 'start';
   try {
-    await fetch(`/api/v1/tunnel/${action}`, { method: 'POST' });
-    setTimeout(fetchTunnelData, 1000); // Poll after a second to see change
+    let res = window.electron.startCloudflare();
+    console.log(res);
   } catch (err) {
     errorMsg.value = `Failed to ${action} tunnel.`;
   }

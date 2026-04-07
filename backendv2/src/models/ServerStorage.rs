@@ -2,6 +2,8 @@ use serde::{Deserialize, Serialize};
 use std::fs;
 use std::env;
 use std::path::{Path, PathBuf};
+use napi_derive::napi;
+use strum_macros::Display;
 
 fn get_app_data_path() -> PathBuf {
     #[cfg(target_os = "windows")]{
@@ -18,15 +20,26 @@ fn get_app_data_path() -> PathBuf {
 
 
 
+#[napi(string_enum)]
+#[derive(Serialize, Deserialize, Debug, Display)]
+#[strum(serialize_all = "lowercase")]
+pub enum Provider{
+    Vanilla,
+    Paper,
+    Fabric,
+    Forge,
+}
 
-#[derive(Serialize, Deserialize, Debug)]
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+#[napi(object)]
 pub struct MinecraftServer {
     pub id: String,
     pub name: String,
     pub instance_path: String,
     pub version: String,
     pub status: String,
-    pub server_type: String,
+    pub provider: Provider,
     pub port: u32,
     pub ram: u32,
 }
@@ -35,6 +48,22 @@ pub struct MinecraftServer {
 pub struct ServerRegistry {
     pub instances: Vec<MinecraftServer>,
 }
+
+
+
+#[napi]
+#[derive(Serialize, Deserialize, Debug)]
+pub struct CreateServerRequest{
+    id: String,
+    name: String,
+    provider: Provider,
+    version: String,
+    ram_mb: u32,
+    port: u32,
+}
+
+
+
 
 impl ServerRegistry {
     pub fn load() -> Self {

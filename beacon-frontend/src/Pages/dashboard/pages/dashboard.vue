@@ -80,7 +80,8 @@ const selectedPlayer = ref(null)
 const fetchServers = () => {
   isLoading.value = true;
   try{
-    const res = window.ElectronAPI.getServers();
+    const res = window.electron.getServers();
+    console.log(res)
   }
   catch(err){
     console.error(err);
@@ -207,7 +208,7 @@ onMounted(() => {
   fetchServers();
   window.addEventListener('click', closeMenus);
   console.log(import.meta.env.VITE_API_URL)
-  window.electronAPI.onServerUpdate((data) => {
+  window.electron.onServerUpdate((data) => {
     servers.value = data;
   });
 });

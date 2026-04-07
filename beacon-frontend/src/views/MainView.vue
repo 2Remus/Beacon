@@ -15,7 +15,7 @@ import Sidebar from "@/UI/sidebar.vue";
       <Sidebar />
       <main class="content-view">
         <div class="page-wrapper">
-          <router-view />
+          <router-view :key="$route.fullPath" />
         </div>
       </main>
     </div>

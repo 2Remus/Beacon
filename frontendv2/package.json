@@ -1,0 +1,94 @@
+{
+  "name": "beacon-frontend",
+  "version": "1.0.0",
+  "description": "Beacon Desktop Application",
+  "author": "Your Name <email@example.com>",
+  "main": "electron-main.cjs",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=20.19.0"
+  },
+  "scripts": {
+    "sync-bins": "mkdir -p bin && cp ../backendv2/index.darwin-arm64.node ./bin/",
+    "sync-bins:prod": "mkdir -p bin && cp ../beacon-host/target/release/beacon-host ./bin/ && cp ../backend/target/release/backend ./bin/beacon-api && strip ./bin/beacon-host ./bin/beacon-api && chmod +x ./bin/beacon-host ./bin/beacon-api",
+    "vite:dev": "vite",
+    "electron:launch": "wait-on -t 30000 http://localhost:5173 && electron ./electron-main.ts",
+    "dev": "npm run sync-bins && concurrently --kill-others \"npm run vite:dev\" \"npm run electron:launch\"",
+    "build": "vite build && electron-builder"
+  },
+  "build": {
+    "appId": "com.beacon.app",
+    "productName": "Beacon",
+    "directories": {
+      "output": "dist",
+      "buildResources": "build"
+    },
+    "files": [
+      "dist/**/*",
+      "electron-main.cjs",
+      "package.json"
+    ],
+    "extraResources": [
+      {
+        "from": "bin/",
+        "to": "bin/",
+        "filter": [
+          "**/*"
+        ]
+      }
+    ],
+    "mac": {
+      "identity": null,
+      "entitlements": null,
+      "entitlementsInherit": null,
+      "hardenedRuntime": false,
+      "gatekeeperAssess": false
+    },
+    "win": {
+      "icon": null,
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "perMachine": false,
+      "installerIcon": null,
+      "uninstallerIcon": null
+    },
+    "publish": []
+  },
+  "dependencies": {
+    "@heroicons/vue": "^2.2.0",
+    "axios": "^1.13.6",
+    "chart.js": "^4.5.1",
+    "heroicons": "^2.2.0",
+    "pinia": "^3.0.4",
+    "sudo-prompt": "^9.2.1",
+    "vue": "^3.5.25",
+    "vue-chartjs": "^5.3.3",
+    "vue-charts": "^0.2.1",
+    "vue-router": "^4.6.3"
+  },
+  "devDependencies": {
+    "@electron/rebuild": "^3.7.1",
+    "@tsconfig/node24": "^24.0.4",
+    "@vitejs/plugin-vue": "^6.0.2",
+    "@vitejs/plugin-vue-jsx": "^5.1.5",
+    "@vue/tsconfig": "^0.9.1",
+    "concurrently": "^9.2.1",
+    "electron": "^41.1.0",
+    "electron-builder": "^26.8.1",
+    "vite": "^7.2.4",
+    "vite-plugin-vue-devtools": "^8.0.5",
+    "wait-on": "^9.0.4"
+  }
+}

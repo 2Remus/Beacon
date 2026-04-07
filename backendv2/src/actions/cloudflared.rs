@@ -1,4 +1,5 @@
 use std::env;
+use std::io::{BufRead, BufReader};
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
 use napi::bindgen_prelude::*;
@@ -6,6 +7,8 @@ use napi_derive::napi;
 use std::process::Child;
 use std::sync::Mutex;
 use lazy_static::lazy_static;
+use crate::get_resource_path;
+use crate::models::Cloudflared::cloudflaredRespone;
 
 lazy_static! {
     static ref ACTIVE_TUNNEL: Mutex<Option<Child>> = Mutex::new(None);
@@ -22,43 +25,69 @@ fn get_cloudflared_path(resource_dir: &Path) -> PathBuf {
     }
 }
 
+
+
+
 #[napi]
-pub async fn start_cloudflared(port: u32) -> napi::Result<String> {
-    // 1. Get the base resource path (from your lib.rs helper)
-    let resource_dir = crate::get_resource_path()?;
+pub async fn  start_cloudflared(port: u32) -> napi::Result<cloudflaredRespone>{
 
-    // 2. Resolve the binary path
-    let cloudflare_bin = get_cloudflared_path(&resource_dir);
+    let resource_dir = get_resource_path()?;
+    let cloudflared_bin = get_cloudflared_path(&resource_dir);
 
-    // 3. Verify existence before spawning
-    if !cloudflare_bin.exists() {
-        return Err(Error::from_reason(format!(
-            "Cloudflared binary missing at: {:?}",
-            cloudflare_bin
-        )));
+    if !cloudflared_bin.exists() {
+        return Err(Error::from_reason(format!("cloudflared {} is not exist", cloudflared_bin.display())));
     }
 
-    // 4. Execute the sidecar
-    // We use "spawn" instead of "output" because we want it to run in the background
-    let child = Command::new(&cloudflare_bin)
+    let mut child = Command::new(&cloudflared_bin)
         .args(&[
             "tunnel",
             "--url",
             &format!("http://localhost:{}", port),
-            "--no-autoupdate"
+            "--no-autoupdate",
         ])
-        .stdout(Stdio::null())
-        .stderr(Stdio::null())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
         .spawn()
-        .map_err(|e| Error::from_reason(format!("Failed to launch cloudflared: {}", e)))?;
+        .map_err(|e| Error::from_reason(format!("Failed to launch: {}", e)))?;
 
+
+    let stderr = child.stderr.take().ok_or_else(|| Error::from_reason("Failed to capture stderr"))?;
+    let reader = BufReader::new(stderr);
+
+    let mut detected_url = String::from("pending");
+
+    // Scan lines until we find the URL
+    for line in reader.lines() {
+        // Explicitly annotate 'l' as a String
+        if let Ok(l) = line {
+            let l: String = l; // This "shadows" the variable with an explicit type
+
+            println!("{}", l);
+
+            if l.contains(".trycloudflare.com") {
+                // Help the compiler with the split/last operations as well
+                if let Some(url) = l.split("at ").collect::<Vec<&str>>().last() {
+                    detected_url = url.trim().to_string();
+                    break;
+                }
+            }
+
+            if l.contains("failed to request quick Tunnel") {
+                return Err(Error::from_reason("Cloudflare timeout or connection error"));
+            }
+        }
+    }
+
+    // Store the child process so it doesn't get dropped (killing the tunnel)
     let mut lock = ACTIVE_TUNNEL.lock().unwrap();
-
     *lock = Some(child);
 
-    Ok(format!("Tunnel initiated via {:?}", cloudflare_bin))
+    Ok(cloudflaredRespone {
+        url: detected_url,
+        status: "RUNNING".to_string(),
+        connections: vec!["Cloudflare Edge".to_string()],
+    })
 }
-
 #[napi]
 pub fn stop_cloudflared(env: Env) -> napi::Result<(String)> {
     let mut lock = ACTIVE_TUNNEL.lock().unwrap();

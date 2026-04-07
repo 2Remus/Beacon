@@ -1,6 +1,7 @@
 <script setup>
 import Sidebar from "@/UI/sidebar.vue";
 </script>
+
 <template>
   <div class="aternos-shell">
     <header class="top-bar">
@@ -15,12 +16,12 @@ import Sidebar from "@/UI/sidebar.vue";
       <Sidebar />
       <main class="content-view">
         <div class="page-wrapper">
-          <router-view />
+          <router-view :key="$route.fullPath" />
         </div>
       </main>
     </div>
   </div>
-</template>
+  </template>
 
 <style scoped>
 .aternos-shell {

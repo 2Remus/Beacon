@@ -1,0 +1,85 @@
+3. The "Beacon Registry" (P2P Images)
+Since Project Beacon is about connectivity, you could create a P2P Image Store.
+
+The Idea: If one user has "Minecraft 1.20.1 + 50 Mods" already set up, another user can "pull" that exact environment directly from them.
+The Tech: Use your Rust backend to compress the instance folder into a .tar.zst and send it over your Cloudflare tunnel.
+
+this is actually a great idea
+
+
+1. The "Image" Structure (The Manifest)
+
+A P2P image shouldn't just be a folder; it needs a Manifest so the "puller" knows what they are getting before they download 2GB of mods.
+
+JSON
+{
+  "name": "Ultra-Modded-Survival",
+  "version": "1.20.1",
+  "total_size_mb": 1450,
+  "hash": "sha256-abc123...", 
+  "required_java": "21",
+  "layers": [
+    {"name": "forge-engine", "hash": "..."},
+    {"name": "mods-folder", "hash": "..."},
+    {"name": "config-presets", "hash": "..."}
+  ]
+}
+2. The Rust "Packer" (Compression)
+
+In your Rust backend, use the tar and zstd crates. Zstd is significantly faster than Gzip, which is crucial for moving large Minecraft modpacks over a residential connection (like Flow in SVG).
+
+Rust
+use tar::Builder;
+use zstd::stream::write::Encoder;
+
+pub fn create_beacon_package(src_dir: &Path, output_file: &Path) -> std::io::Result<()> {
+    let file = fs::File::create(output_file)?;
+    // Level 3 compression is the "sweet spot" for speed vs size
+    let mut encoder = Encoder::new(file, 3)?; 
+    let mut archive = Builder::new(encoder);
+
+    archive.append_dir_all(".", src_dir)?;
+    archive.finish()?;
+    Ok(())
+}
+3. The Transfer Logic (P2P via Cloudflare)
+
+Since you're already using cloudflared, you can expose a local "Registry Port" on the host machine.
+
+Host: Starts a tiny Axum (Rust) web server on 127.0.0.1:5000.
+
+Host: cloudflared tunnels that port to a public URL (e.g., registry-user123.trycloudflare.com).
+
+Peer: Your Electron app sends a GET request to that URL.
+
+Rust Backend: Streams the .tar.zst file directly from the disk to the network.
+
+4. Handling the "Missing Pieces"
+
+When a peer "pulls" an image, your Rust code should perform a Differential Sync:
+
+Check Local: "Do I already have Minecraft-1.20.1.jar?"
+
+Skip: If yes, don't download it from the peer.
+
+Fetch: Only download the unique mods and configs.
+
+5. Why this is "Elite"
+
+No Server Costs: You don't have to pay for S3 buckets or Docker Registry hosting.
+
+Modpack Portability: Users can share their "Golden Images" (perfectly configured servers) instantly.
+
+Privacy: Data stays between friends.
+
+The "Beacon" Workflow:
+
+User A clicks "Share Server" in Electron.
+
+Rust zips the folder and starts a temporary Cloudflare tunnel.
+
+User A sends a "Beacon Link" to User B.
+
+User B pastes the link; their Rust backend pulls the manifest, validates the Java version, and starts the stream.
+
+Would you want to build a "Discovery" tab in your Electron UI so users can see "Public" images being shared by others on the Beacon network?

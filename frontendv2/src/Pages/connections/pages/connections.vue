@@ -1,45 +1,75 @@
 <script setup>
 import { ref, onMounted, onUnmounted } from 'vue';
 
-const tunnelStatus = ref('disconnected'); // 'connected', 'disconnected', 'error'
+const tunnelStatus = ref('offline'); // 'RUNNING', 'offline', 'error'
 const connections = ref([]);
 const isUpdating = ref(false);
 const errorMsg = ref('');
+const publicUrl = ref(''); // To store the cleaned .trycloudflare.com link
 
-// Fetch current tunnel state and active users
-const fetchTunnelData = async () => {
-  isUpdating.value = true;
-  try {
-    // Calling relative path to bypass CORS via Nginx proxy
-    const response = await fetch('/api/v1/tunnel/status');
-    if (!response.ok) throw new Error('Failed to fetch tunnel status');
-
-    const data = await response.json();
-    tunnelStatus.value = data.status; // e.g., "active"
-    connections.value = data.active_connections; // Array of user objects
-    errorMsg.value = '';
-  } catch (err) {
-    errorMsg.value = "Could not reach Project Beacon API.";
-    tunnelStatus.value = 'error';
-  } finally {
-    isUpdating.value = false;
-  }
+// Helper to extract the URL from the messy Cloudflare log string
+const cleanUrl = (rawUrl) => {
+  if (!rawUrl) return '';
+  const match = rawUrl.match(/https:\/\/[a-z0-9-]+\.trycloudflare\.com/);
+  return match ? match[0] : rawUrl;
 };
 
 const toggleTunnel = async () => {
-  const action = tunnelStatus.value === 'active' ? 'stop' : 'start';
+  isUpdating.value = true;
+  if (tunnelStatus.value === 'offline') {
+    try {
+      // Note: ensure the method name matches your preload.js (startCloudflare vs startCloudflared)
+      const res = await window.electron.startCloudflare(25565);
+
+      console.log('Tunnel Response:', res);
+
+      // Update refs with data from the Proxy object
+      tunnelStatus.value = res.status; // "RUNNING"
+      publicUrl.value = cleanUrl(res.url);
+      connections.value = res.connections || [];
+      errorMsg.value = '';
+    } catch (err) {
+      console.error('Tunnel Error:', err);
+      errorMsg.value = "Failed to launch sidecar binary.";
+      tunnelStatus.value = 'error';
+    } finally {
+      isUpdating.value = false;
+    }
+  }
+  else{
+    try{
+      window.electron.stopCloudflare();
+      tunnelStatus.value = "offline"; // "RUNNING"
+      publicUrl.value = "";
+      connections.value =  [];
+    }catch(err){
+      console.error('Tunnel Error:', err);
+    }finally {
+      isUpdating.value = false;
+    }
+  }
+
+};
+
+// If you have a separate API for stats, keep this, otherwise we rely on the Electron toggle
+const fetchTunnelData = async () => {
+  // If the tunnel isn't running, don't bother polling the local API
+  if (tunnelStatus.value !== 'RUNNING') return;
+
   try {
-    let res = window.electron.startCloudflare();
-    console.log(res);
+    const response = await fetch('/api/v1/tunnel/status');
+    if (response.ok) {
+      const data = await response.json();
+      connections.value = data.active_connections;
+    }
   } catch (err) {
-    errorMsg.value = `Failed to ${action} tunnel.`;
+    // Silently fail polling to avoid UI flicker
   }
 };
 
 let interval;
 onMounted(() => {
-  fetchTunnelData();
-  interval = setInterval(fetchTunnelData, 5000); // Auto-refresh every 5s
+  interval = setInterval(fetchTunnelData, 5000);
 });
 
 onUnmounted(() => clearInterval(interval));
@@ -47,44 +77,45 @@ onUnmounted(() => clearInterval(interval));
 
 <template>
   <div class="connections-container">
-    <header class="status-card" :class="tunnelStatus">
+    <header class="status-card" :class="{ 'active': tunnelStatus === 'RUNNING', 'error': tunnelStatus === 'error' }">
       <div class="info">
         <h1>Cloudflare Tunnel</h1>
-        <p v-if="tunnelStatus === 'active'" class="badge">● Online</p>
-        <p v-else class="badge">○ Offline</p>
+        <div v-if="tunnelStatus === 'RUNNING'">
+          <p class="badge">● Online</p>
+          <code class="url-display">{{ publicUrl }}</code>
+        </div>
+        <p v-else class="badge offline">○ Offline</p>
       </div>
-      <button @click="toggleTunnel" :disabled="isUpdating">
-        {{ tunnelStatus === 'active' ? 'Disconnect' : 'Connect' }}
+      <button @click="toggleTunnel" :disabled="isUpdating" :class="{ 'btn-stop': tunnelStatus === 'RUNNING' }">
+        {{ isUpdating ? 'Processing...' : (tunnelStatus === 'RUNNING' ? 'Disconnect' : 'Connect') }}
       </button>
     </header>
 
     <div v-if="errorMsg" class="error-banner">{{ errorMsg }}</div>
 
     <section class="connections-list">
-      <h2>Active Connections ({{ connections.length }})</h2>
+      <h2>Active Edges ({{ connections.length }})</h2>
       <table>
         <thead>
         <tr>
-          <th>User</th>
-          <th>IP Address</th>
-          <th>Latency</th>
-          <th>Uptime</th>
+          <th>Node</th>
+          <th>Type</th>
+          <th>Status</th>
         </tr>
         </thead>
         <tbody>
-        <tr v-for="user in connections" :key="user.id">
+        <tr v-for="(conn, index) in connections" :key="index">
           <td>
             <div class="user-cell">
-              <img :src="user.avatar || 'https://via.placeholder.com/32'" alt="">
-              {{ user.name }}
+              <span class="icon">🌐</span>
+              {{ conn }}
             </div>
           </td>
-          <td><code>{{ user.ip }}</code></td>
-          <td>{{ user.ping }}ms</td>
-          <td>{{ user.duration }}</td>
+          <td><code>Anycast</code></td>
+          <td><span class="status-text">Connected</span></td>
         </tr>
         <tr v-if="connections.length === 0">
-          <td colspan="4" class="empty">No active users via Tunnel.</td>
+          <td colspan="3" class="empty">No active connections. Click connect to initialize.</td>
         </tr>
         </tbody>
       </table>
@@ -150,6 +181,40 @@ td { padding: 1rem; border-top: 1px solid #1e293b; }
   padding: 1rem;
   border-radius: 8px;
   margin-bottom: 1rem;
+}
+
+
+/* Add these to your existing styles */
+
+.url-display {
+  display: block;
+  margin-top: 10px;
+  background: rgba(0, 0, 0, 0.3);
+  padding: 8px 12px;
+  border-radius: 6px;
+  color: #3b82f6; /* Beacon Blue */
+  font-family: 'Fira Code', monospace;
+  font-size: 0.85rem;
+  border: 1px solid rgba(59, 130, 246, 0.2);
+}
+
+.badge.offline {
+  color: #64748b;
+}
+
+.btn-stop {
+  background: #ef4444 !important;
+}
+
+.status-text {
+  color: #10b981;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  font-weight: bold;
+}
+
+.icon {
+  font-size: 1.2rem;
 }
 
 .empty { text-align: center; padding: 3rem; color: #64748b; }

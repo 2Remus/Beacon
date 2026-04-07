@@ -1,0 +1,14 @@
+/Users/adafaralph/dev/Beacon/backendv2/target/release/deps/serde-ed60c6994b52ab8a.d: /Users/adafaralph/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/lib.rs /Users/adafaralph/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/integer128.rs /Users/adafaralph/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/private/mod.rs /Users/adafaralph/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/private/de.rs /Users/adafaralph/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/private/ser.rs /Users/adafaralph/dev/Beacon/backendv2/target/release/build/serde-689ad39c0ab47b7c/out/private.rs
+
+/Users/adafaralph/dev/Beacon/backendv2/target/release/deps/libserde-ed60c6994b52ab8a.rlib: /Users/adafaralph/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/lib.rs /Users/adafaralph/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/integer128.rs /Users/adafaralph/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/private/mod.rs /Users/adafaralph/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/private/de.rs /Users/adafaralph/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/private/ser.rs /Users/adafaralph/dev/Beacon/backendv2/target/release/build/serde-689ad39c0ab47b7c/out/private.rs
+
+/Users/adafaralph/dev/Beacon/backendv2/target/release/deps/libserde-ed60c6994b52ab8a.rmeta: /Users/adafaralph/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/lib.rs /Users/adafaralph/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/integer128.rs /Users/adafaralph/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/private/mod.rs /Users/adafaralph/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/private/de.rs /Users/adafaralph/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/private/ser.rs /Users/adafaralph/dev/Beacon/backendv2/target/release/build/serde-689ad39c0ab47b7c/out/private.rs
+
+/Users/adafaralph/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/lib.rs:
+/Users/adafaralph/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/integer128.rs:
+/Users/adafaralph/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/private/mod.rs:
+/Users/adafaralph/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/private/de.rs:
+/Users/adafaralph/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/private/ser.rs:
+/Users/adafaralph/dev/Beacon/backendv2/target/release/build/serde-689ad39c0ab47b7c/out/private.rs:
+
+# env-dep:OUT_DIR=/Users/adafaralph/dev/Beacon/backendv2/target/release/build/serde-689ad39c0ab47b7c/out

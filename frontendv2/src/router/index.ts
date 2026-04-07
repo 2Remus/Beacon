@@ -1,36 +1,36 @@
-import { createRouter, createWebHistory } from 'vue-router'
-import {DashboardRoutes} from "@/Pages/dashboard/index.js";
-import MainView from "@/views/MainView.vue";
-import AuthView from "@/views/AuthView.vue";
-import {AuthRoutes} from "@/Pages/auth/index.js";
-import {connectionsRoutes} from "@/Pages/connections/index.ts";
+// @/router/index.ts
+import { createRouter, createWebHashHistory } from 'vue-router';
+import MainLayout from "@/views/MainView.vue";
+//import AuthLayout from "@/layouts/AuthLayout.vue";
 
+// Modular Route Imports
+import { connectionsRoutes } from "../Pages/connections/connections.ts";
+// import { authRoutes } from "../Pages/auth";
+import { dashboardRoutes } from "../Pages/dashboard/dashboard.ts";
 
 const router = createRouter({
-  history: createWebHistory(),
+  // Electron usually fails on refresh with WebHistory; HashHistory is safer
+  history: createWebHashHistory(),
   routes: [
     {
       path: '/',
-      component: MainView,
+      component: MainLayout,
       children: [
-        ...DashboardRoutes // Spread the array items directly here
+        ...connectionsRoutes,
+        ...dashboardRoutes,
       ]
     },
+    // {
+    //   path: '/auth',
+    //   component: AuthLayout,
+    //   children: authRoutes
+    // },
+    // Fallback/404 can go here
     {
-      path: '/auth',
-      component: AuthView,
-      children: [
-        ...AuthRoutes
-      ]
-    },
-    {
-      path: '/connections',
-      component: MainView,
-      children: [
-        ...connectionsRoutes
-      ]
+      path: '/:pathMatch(.*)*',
+      redirect: '/'
     }
   ]
-})
+});
 
-export default router
+export default router;

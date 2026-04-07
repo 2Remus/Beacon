@@ -1,5 +1,5 @@
 <script setup>
-import { onMounted, ref, onUnmounted, nextTick, computed, watch } from 'vue'
+import { onMounted, ref, onUnmounted, nextTick, computed, watch, version } from 'vue'
 
 // --- State Management ---
 const isLoading = ref(true)
@@ -9,20 +9,22 @@ const currentView = ref("grid") // 'grid' or 'stats'
 const activeInstance = ref(null)
 const activeMenuId = ref(null) // Tracks which server's 3-dot menu is open
 
+
 // --- Deployment State ---
 const isCreating = ref(false)
 const newInstanceName = ref('')
 const newInstanceVersion = ref('1.20.1')
-const selectedType = ref('VANILLA')
+const selectedType = ref('Vanilla')
 const memoryAlloc = ref('3G')
 const isOnlineMode = ref(false)
 const isDeploying = ref(false)
+const servers = ref([])
 
 const serverTypes = [
-  { id: 'VANILLA', name: 'Vanilla', logo: '🍦', desc: 'Official Mojang Engine' },
-  { id: 'FABRIC', name: 'Fabric', logo: '🧶', desc: 'Lightweight Modding' },
-  { id: 'PAPER', name: 'Paper', logo: '📜', desc: 'High-Performance Spigot' },
-  { id: 'FORGE', name: 'Forge', logo: '⚒️', desc: 'Heavy Modding Support' }
+  { id: 'Vanilla', name: 'Vanilla', logo: '🍦', desc: 'Official Mojang Engine' },
+  { id: 'Fabric', name: 'Fabric', logo: '🧶', desc: 'Lightweight Modding' },
+  { id: 'Paper', name: 'Paper', logo: '📜', desc: 'High-Performance Spigot' },
+  { id: 'Forge', name: 'Forge', logo: '⚒️', desc: 'Heavy Modding Support' }
 ]
 
 /**
@@ -41,10 +43,10 @@ const generateVersions = (start, endSub, endMinor) => {
 const allVersions = generateVersions();
 
 const compatibilityMap = {
-  VANILLA: allVersions,
-  PAPER: allVersions.filter(v => !v.startsWith('26')),
-  FABRIC: allVersions.filter(v => parseFloat(v.split('.')[1]) >= 14 || v.startsWith('26')),
-  FORGE: allVersions.filter(v => parseFloat(v.split('.')[1]) >= 12 && !v.startsWith('26'))
+  Vanilla: allVersions,
+  Paper: allVersions.filter(v => !v.startsWith('26')),
+  Fabric: allVersions.filter(v => parseFloat(v.split('.')[1]) >= 14 || v.startsWith('26')),
+  Forge: allVersions.filter(v => parseFloat(v.split('.')[1]) >= 12 && !v.startsWith('26'))
 };
 
 const availableVersions = computed(() => {
@@ -77,14 +79,18 @@ const selectedPlayer = ref(null)
 /**
  * 1. Cluster Sync (SSE)
  */
-const fetchServers = () => {
+const fetchServers = async () => {
   isLoading.value = true;
   try{
-    const res = window.electron.getServers();
-    console.log(res)
+    // const res = window.electron.getServers();
+    instances.value = await window.electron.getServers();
+    console.log('servers.value', instances.value)
+
   }
   catch(err){
     console.error(err);
+  } finally {
+    isLoading.value = false;
   }
 };
 
@@ -131,16 +137,48 @@ const closeStats = () => {
   selectedPlayer.value = null;
 };
 
-const toggleStatus = async (name, status) => {
-  const action = status === "RUNNING" ? "stop" : "start";
+
+const toggleStatus = async (server) => {
+  console.log("Button clicked for server:", server);
+
+  if (!server) return;
+
+  // FIX: Support both snake_case (from Rust) and camelCase (if changed in JS)
+  const path = server.instance_path || server.instancePath; //
+
+  if (!path) {
+    console.error(`❌ Path missing for server: ${server.name || 'Unknown'}`);
+    // This logs because both were undefined
+    return;
+  }
+
   try {
-    await fetch(`http://api.beacon.local/api/v1/servers/${action}`, {
-      method: "POST",
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name: name })
-    });
-  } catch (e) {
-    console.error("Action Failed:", e);
+    if (server.status?.toUpperCase() === 'RUNNING') {
+      server.status = 'STOPPING';
+      await window.electron.stopServer(server.id.toString());
+      server.status = 'STOPPED';
+    } else {
+      server.status = 'STARTING';
+
+      const payload = {
+        id: server.id.toString(),
+        bin_dir: path.toString(), //
+        ram: parseInt(server.ram) || 3072 //
+      };
+
+      const result = await window.electron.startServer(payload);
+
+      if (result && !result.error) {
+        server.status = 'RUNNING';
+        server.pid = result.pid;
+      } else {
+        server.status = 'ERROR';
+        console.error("Rust side error:", result?.error);
+      }
+    }
+  } catch (err) {
+    console.error("IPC Bridge Error:", err);
+    server.status = 'ERROR';
   }
 };
 
@@ -151,27 +189,36 @@ const deployInstance = async () => {
   if (!isFormValid.value) return;
   isDeploying.value = true;
 
+  // 1. Align the keys with your Rust Struct (id, ram_mb, provider, etc.)
   const payload = {
+    id: crypto.randomUUID(), // Generate unique ID on the frontend
     name: newInstanceName.value,
+    provider: selectedType.value, // Maps to your Rust 'Provider' enum
     version: newInstanceVersion.value,
-    server_type: selectedType.value,
-    memory: memoryAlloc.value,
+    ram_mb: memoryAlloc.value,    // Ensure this matches your Rust 'ram_mb' field
+    port: 25565,                  // Default or from a ref
     online_mode: isOnlineMode.value
   };
 
   try {
-    const response = await fetch('http://api.beacon.local/api/v1/servers/create', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
-    });
+    // 2. Use the IPC Bridge instead of fetch
+    // This calls your 'createServer' handler in main.ts
+    const result = await window.electron.createServer(payload.id, payload.name, payload.provider, payload.version, payload.ram_mb, payload.port, payload.online_mode, payload.online_mode);
 
-    if (response.ok) {
+    // 3. Handle the response reactively
+    if (result && !result.error) {
+      // Clear form and close modal/view
       isCreating.value = false;
       newInstanceName.value = '';
+
+      // Optional: Refresh the server list or navigate
+      // await fetchServers();
+    } else {
+      console.error("Rust Backend Error:", result.error);
     }
   } catch (err) {
-    console.error("Deployment failed:", err);
+    // This catches IPC communication failures
+    console.error("Bridge communication failed:", err);
   } finally {
     isDeploying.value = false;
   }
@@ -204,13 +251,16 @@ const closeMenus = () => {
   activeMenuId.value = null;
 };
 
-onMounted(() => {
+onMounted(async () => {
   fetchServers();
   window.addEventListener('click', closeMenus);
   console.log(import.meta.env.VITE_API_URL)
-  window.electron.onServerUpdate((data) => {
-    servers.value = data;
-  });
+
+
+
+  // window.electron.onServerUpdate((data) => {
+  //   servers.value = data;
+  // });
 });
 
 onUnmounted(() => {
@@ -227,7 +277,7 @@ onUnmounted(() => {
       <div v-if="isCreating" class="modal-overlay" @click.self="isCreating = false">
         <div class="modal-glass">
           <span class="section-label">Initialize Node</span>
-          <h2>Deploy New Instance</h2>
+          <h2 class="deploy-instance">Deploy New Instance</h2>
 
           <div class="input-stack">
             <label>Node Identity</label>
@@ -354,7 +404,11 @@ onUnmounted(() => {
             </div>
 
             <div class="card-actions" @click.stop>
-              <button class="btn-action" :class="server.status?.toLowerCase()" @click="toggleStatus(server.name, server.status)">
+              <button
+                class="btn-action"
+                :class="server.status?.toLowerCase()"
+                @click="toggleStatus(server)"
+              >
                 {{ server.status === 'RUNNING' ? 'STOP' : 'START' }}
               </button>
               <button class="btn-secondary" @click="openServerStats(server)">CONSOLE</button>
@@ -450,8 +504,17 @@ onUnmounted(() => {
   </div>
 </template>
 
+
+
 <style scoped>
 /* Dashboard Shell */
+
+.showing-swiftly{
+  background-color: #fff;
+  color: black;
+}
+
+
 .dashboard-container { padding: 40px; max-width: 1400px; margin: 0 auto; color: #1d1d1f; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; min-height: 100vh; }
 .dashboard-header { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 40px; flex-shrink: 0; }
 h1 { font-size: 2.5rem; font-weight: 900; letter-spacing: -1.5px; margin: 0; }
@@ -484,13 +547,31 @@ h1 { font-size: 2.5rem; font-weight: 900; letter-spacing: -1.5px; margin: 0; }
 
 /* Card Aesthetics */
 .card {
-  background: rgba(255, 255, 255, 0.7);
-  backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.8);
+  /* 1. Make it more transparent */
+  background: rgba(255, 255, 255, 0.05);
+
+  /* 2. Intense blur for the "liquid" feel */
+  backdrop-filter: blur(25px) saturate(160%);
+  -webkit-backdrop-filter: blur(25px) saturate(160%);
+
+  /* 3. The "Glass Edge" - subtle side borders, bright top border */
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-top: 1px solid rgba(255, 255, 255, 0.4);
+  border-left: 1px solid rgba(255, 255, 255, 0.2);
+
+  /* 4. Soft rounded look */
   border-radius: 30px;
   padding: 30px;
+
+  /* 5. Deep Shadow + Inner Glow (Liquid Depth) */
+  box-shadow:
+    0 20px 40px rgba(0, 0, 0, 0.3),            /* Deep shadow */
+    inset 0 0 15px rgba(255, 255, 255, 0.05); /* Soft inner glow */
+
   transition: all 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
   cursor: pointer;
+  overflow: hidden; /* Clips the shine */
+  position: relative;
 }
 .card:hover { transform: translateY(-8px); box-shadow: 0 30px 60px rgba(0,0,0,0.06); }
 
@@ -533,17 +614,22 @@ h1 { font-size: 2.5rem; font-weight: 900; letter-spacing: -1.5px; margin: 0; }
 
 /* --- Deploy Modal Styles --- */
 .modal-overlay {
-  position: fixed; inset: 0; background: rgba(0,0,0,0.1); backdrop-filter: blur(20px);
+  position: fixed; inset: 0; background: rgba(16, 16, 16, 0.38); backdrop-filter: blur(20px);
   display: flex; align-items: center; justify-content: center; z-index: 1000;
 }
+
+.deploy-instance{
+  color: #ffffff;
+}
+
 .modal-glass {
-  background: #fff; padding: 40px; border-radius: 40px; width: 100%; max-width: 600px;
+  background: rgba(25, 28, 32, 0.51); padding: 40px; border-radius: 40px; width: 100%; max-width: 600px;
   box-shadow: 0 40px 100px rgba(0,0,0,0.1);
 }
 .input-stack { display: flex; flex-direction: column; gap: 8px; margin: 20px 0; }
-.input-stack label { font-size: 0.7rem; font-weight: 800; color: #86868b; text-transform: uppercase; letter-spacing: 0.5px; }
+.input-stack label { font-size: 0.7rem; font-weight: 800; color: #e5e5e8; text-transform: uppercase; letter-spacing: 0.5px; }
 .fancy-input {
-  background: #f5f5f7; border: none; padding: 15px; border-radius: 16px;
+  background: rgba(7, 6, 6, 0.18); border: none; padding: 15px; border-radius: 16px;
   font-size: 1rem; font-weight: 600; color: #1d1d1f; outline: none;
 }
 .form-row { display: flex; gap: 15px; }
@@ -552,19 +638,19 @@ h1 { font-size: 2.5rem; font-weight: 900; letter-spacing: -1.5px; margin: 0; }
 /* Type Grid Implementation */
 .type-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-top: 5px; }
 .type-box {
-  display: flex; align-items: center; gap: 12px; padding: 12px; background: #f5f5f7;
+  display: flex; align-items: center; gap: 12px; padding: 12px; background: rgba(9, 8, 8, 0.17);
   border-radius: 18px; border: 2px solid transparent; cursor: pointer; transition: 0.2s;
 }
-.type-box.active { border-color: #0071e3; background: #fff; box-shadow: 0 10px 20px rgba(0,113,227,0.08); }
+.type-box.active { border-color: #0071e3; background: rgba(16, 15, 15, 0.17); box-shadow: 0 10px 20px rgba(0,113,227,0.08); }
 .type-logo { font-size: 1.5rem; }
 .type-info { display: flex; flex-direction: column; }
-.type-name { font-weight: 800; font-size: 0.9rem; color: #1d1d1f; }
+.type-name { font-weight: 800; font-size: 0.9rem; color: #fffcfc; }
 .type-desc { font-size: 0.7rem; color: #86868b; font-weight: 500; }
 
 /* Toggle Switch Styling */
 .toggle-stack {
   display: flex; justify-content: space-between; align-items: center;
-  background: #f5f5f7; padding: 15px 20px; border-radius: 20px; cursor: pointer; margin-top: 10px;
+  background: rgba(23, 22, 22, 0.16); padding: 15px 20px; border-radius: 20px; cursor: pointer; margin-top: 10px;
 }
 .toggle-info { display: flex; flex-direction: column; }
 .toggle-label { font-size: 0.9rem; font-weight: 700; }
@@ -584,7 +670,11 @@ h1 { font-size: 2.5rem; font-weight: 900; letter-spacing: -1.5px; margin: 0; }
 /* --- Stats View Improved Scaling --- */
 .stats-view-container { display: flex; flex-direction: column; height: 100%; }
 .stats-layout { display: grid; grid-template-columns: 1fr 320px; gap: 30px; flex-grow: 1; min-height: 0; }
-.terminal-column { display: flex; flex-direction: column; min-width: 0; }
+.terminal-column {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
 
 .log-terminal {
   background: #1d1d1f; border-radius: 24px; padding: 25px;
@@ -601,7 +691,14 @@ h1 { font-size: 2.5rem; font-weight: 900; letter-spacing: -1.5px; margin: 0; }
 .player-sidebar { position: relative; }
 .sticky-sidebar-content { position: sticky; top: 20px; display: flex; flex-direction: column; gap: 20px; }
 
-.section-label { display: block; font-size: 0.7rem; font-weight: 900; color: #86868b; text-transform: uppercase; margin-bottom: 15px; }
+.section-label {
+  font-family: 'JetBrains Mono', monospace; /* Or any clean mono font */
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  color: rgba(255, 255, 255, 0.5);
+  padding-left: 10px;
+}
 
 /* Player List Styling */
 .player-list { display: flex; flex-direction: column; gap: 12px; max-height: 400px; overflow-y: auto; padding-right: 5px; }

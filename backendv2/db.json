@@ -1,0 +1,10 @@
+{
+  "id": "7f3b1a2c-8d4e-4b9a-bc1d-e0f2a4b6c8d0",
+  "name": "Minceraft2-Alpha-Alpha",
+  "instance_path": "/Users/adafaralph/dev/Beacon/instances/alpha-01",
+  "version": "1.20.4",
+  "status": "running",
+  "server_type": "vanilla",
+  "port": 25565,
+  "ram": 4096
+}
