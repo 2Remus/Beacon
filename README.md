@@ -1,102 +1,97 @@
-# 🗼 Beacon
-### A high-performance, container-native Minecraft orchestrator.
-
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 [![Rust](https://img.shields.io/badge/backend-Rust-orange.svg)](https://www.rust-lang.org/)
 [![Vue 3](https://img.shields.io/badge/frontend-Vue%203-42b883.svg)](https://vuejs.org/)
 [![Docker](https://img.shields.io/badge/platform-Docker-blue.svg)](https://www.docker.com/)
 
-**Beacon** is a lightweight management suite designed to simplify the deployment and scaling of Minecraft servers. Built with a **Rust (Axum)** control plane and a **Vue 3** dashboard, Beacon provides a "blazingly fast" interface to spawn, monitor, and back up containerized game instances with near-zero host overhead.
+📡 Project Beacon
+The Sovereignty-First Game Server Orchestrator
 
----
+Project Beacon is a high-performance, open-source desktop orchestrator designed to put game hosting back into the hands of the players. By combining a Rust-based native core with a modern Vue.js interface, Beacon provides a "Liquid Glass" experience for managing Minecraft instances, secure tunnels, and system-level sidecar dependencies.
 
-## ✨ Features
+🚀 The Vision
+Hosting a local server should be a core memory, not a technical headache. Many developers and gamers grew up struggling with port-forwarding, unstable VPNs, or volatile "free" hosting services that could delete their worlds at any moment to save resources.
 
-* ⚡ **One-Click Deployment:** Spin up Vanilla, Paper, or Forge servers in seconds.
-* 📈 **Real-time Monitoring:** Live CPU/RAM stats and console streaming via WebSockets.
-* 📦 **Container-First:** Every server runs in an isolated Docker environment for maximum security.
-* 💾 **Automated Backups:** Integrated snapshot system to keep your worlds safe.
-* 🛠️ **Developer-Friendly API:** A fully documented REST API for custom integrations.
-* 🔐 **Enterprise SSO:** Identity management powered by Keycloak.
+Beacon solves this by turning your own hardware into a professional-grade hosting node. It manages the complexity of the JVM, networking, and storage, so you can focus on the game.
 
----
+🛠️ The Architecture
+Beacon follows a Native Hybrid Architecture. Unlike traditional Electron apps that rely solely on JavaScript, Beacon offloads all high-stakes operations to a compiled Rust core.
 
-## 🏗️ Architecture
+The Layers
 
-Beacon uses a reverse-proxy model to manage internal services and provide a seamless Single Sign-On (SSO) experience.
+The Core (Systems Layer): A native Rust engine built with napi-rs. It handles low-level process spawning (JVM), filesystem guards, symlinking, and memory allocation.
 
-    [ User Browser ]
-           |
-    [ Nginx Proxy ] 
-           |
-    ---------------------------------------------------
-    |                 |                               |
-    [ Vue Dashboard ] [ Rust Control Plane ] [ Keycloak SSO ]
-    (app.beacon.local) (api.beacon.local)    (sso.beacon.local)
-                      |                               |
-                [ Docker Engine ]             [ Postgres DB ]
-                      |
-                -----------------------
-                |                     |
-          [ MC: Survival ]      [ MC: Creative ]
+The Glue (FFI Bridge): A type-safe bridge that maps Rust structs to TypeScript interfaces, ensuring that data like PIDs and RAM usage are passed with zero-copy efficiency.
 
----
+The Shell (Presentation Layer): A Vue 3 dashboard running in an Electron environment, designed for high-density information and real-time feedback.
 
-## 🚀 Quick Start (End-Users)
+The Sidecars: Managed sub-processes including cloudflared for secure tunneling and nginx for local traffic orchestration.
 
-### 1. Host Configuration
-Add the following to your system hosts file to enable local domain routing:
-* Linux/macOS: /etc/hosts
-* Windows: C:\Windows\System32\drivers\etc\hosts
+✨ Features
+📦 Automated Provisioning: Dynamic server directory creation with automated eula.txt and server.properties generation.
 
-    127.0.0.1 app.beacon.local api.beacon.local sso.beacon.local
+⚙️ Lifecycle Management: Real-time PID tracking. Start, stop, and monitor JVM health directly from the dashboard.
 
-### 2. Configure Environment
-Download the release, enter the directory, and initialize your configuration:
+🔒 Tunnel-Ready: Force-binds instances to loopback (127.0.0.1) by default, preparing them for secure public exposure via Cloudflare Sidecars.
 
-    cp .env.example .env
+🚀 M3 Optimized: Specifically architected to leverage high-performance silicon, ensuring near-instant I/O and process execution.
 
-Edit .env and set secure values for POSTGRES_PASSWORD, KEYCLOAK_ADMIN_PASSWORD, and BEACON_SECRET_KEY.
+💾 Registry System: A persistent JSON-based database that tracks every instance, its version, its provider (Vanilla/Paper/Fabric), and its resource allocation.
 
-### 3. Deployment
-Run the stack using Docker Compose:
+📂 Project Structure
+src-rust/ — The Heart. Native logic for server spawning and filesystem orchestration.
 
-    docker-compose up -d
+src/ — The Face. Vue 3 components, state management, and "Liquid Glass" styling.
 
-* Dashboard: http://app.beacon.local
-* API Docs: http://api.beacon.local/docs
-* SSO Admin: http://sso.beacon.local
+electron/ — The Bridge. Main process logic and IPC handlers.
 
----
+containers/ — The Vault. Where your isolated Minecraft instances live.
 
-## 🛠️ Development & Contributing
+🚦 Getting Started
+Prerequisites
 
-### Project Structure
-| Directory | Description |
-| :--- | :--- |
-| /backend | Rust Control Plane (Axum, Bollard, SQLx) |
-| /frontend | Vue 3 Dashboard (Vite, Tailwind, Pinia) |
-| /nginx | Reverse proxy configuration |
-| /keycloak | Realm exports & custom themes |
+Rust: Latest stable toolchain.
 
-### Local Setup
-1. Backend: Ensure Postgres is running, then: cd backend && cargo watch -x run
-2. Frontend: cd frontend && npm install && npm run dev
+Node.js: v18 or higher.
 
-### Contribution Workflow
-1. Fork the Project.
-2. Create your Feature Branch (git checkout -b feature/AmazingFeature).
-3. Commit your Changes (git commit -m 'Add some AmazingFeature').
-4. Push to the Branch (git push origin feature/AmazingFeature).
-5. Open a Pull Request.
+Java: Version 17 or 21 (Must be available in your system PATH).
 
----
+Installation
 
-## 🛡️ Security Note
+Clone the Repo:
 
-IMPORTANT: Beacon requires access to the Docker Socket (/var/run/docker.sock). In production environments, it is highly recommended to use a Docker Socket Proxy to limit the API calls Beacon can make to only necessary container management functions.
+git clone https://github.com/adafaralph/beacon.git
 
----
+cd beacon
 
-## 📄 License
+Install JS Dependencies:
+
+npm install
+
+Compile the Native Core:
+
+npm run build:rust
+
+Launch Beacon:
+
+npm run dev
+
+📜 Development Roadmap
+[x] Native Rust-to-JS Bridge Implementation
+
+[x] Dynamic Instance Provisioning
+
+[x] JVM Process Lifecycle Management
+
+[ ] Integrated Cloudflare Tunnel Configuration
+
+[ ] Real-time Console Log Streaming via Rust Pipes
+
+[ ] Resource Usage Graphs (CPU/RAM)
+
+🤝 Contributing
+Beacon is an open-source project. Whether you are a Rustacean, a Vue expert, or a Minecraft enthusiast, your contributions are welcome. Please feel free to open issues or submit pull requests.
+
+⚖️ License
 Distributed under the MIT License. See LICENSE for more information.
+
+Crafted with 🦀 by Adafa Ralph
