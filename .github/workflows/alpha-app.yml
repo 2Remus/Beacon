@@ -8,7 +8,7 @@ permissions:
   contents: write
 
 jobs:
-  # STAGE 1: Build Rust Binaries (Sidecars)
+  # STAGE 1: Build Rust Binaries (Cross-Platform)
   build-rust-binaries:
     strategy:
       matrix:
@@ -29,14 +29,17 @@ jobs:
         with:
           targets: ${{ matrix.target }}
 
+      # Build the Host (Orchestrator)
       - name: Build beacon-host
         working-directory: ./beacon-host
         run: cargo build --release --target ${{ matrix.target }}
 
+      # Build the Backend (API)
       - name: Build beacon-api
         working-directory: ./backend
         run: cargo build --release --target ${{ matrix.target }}
 
+      # Package Binaries for the Electron stage
       - name: Prepare Binaries
         shell: bash
         run: |
@@ -50,6 +53,7 @@ jobs:
           name: binaries-${{ matrix.os }}
           path: ./temp-bin/
 
+  # STAGE 2: Build and Package Electron App
   # STAGE 2: Build and Package Electron App
   build-electron-app:
     needs: build-rust-binaries
@@ -66,67 +70,78 @@ jobs:
         with:
           node-version: 20
           cache: 'npm'
+          # FIX: This tells the runner where to find the lockfile for caching
           cache-dependency-path: ./beacon-frontend/package-lock.json
 
       - name: Install Dependencies
-        working-directory: ./beacon-frontend
+        # If your package.json is in a subfolder, add: working-directory: ./beacon-frontend
         run: |
           npm install
+          # Force install electron-builder in the runner environment
           npm install -g electron-builder
 
+      # Download the Rust binaries from the previous stage
       - name: Download Rust Binaries
         uses: actions/download-artifact@v4
         with:
           name: binaries-${{ matrix.os }}
-          path: ./bin/
+          path: ./bin/ # Stays here so extraResources can find it
 
+      # Ensure permissions for Mac
       - name: Set Permissions
         if: matrix.os == 'macos-latest'
         run: chmod +x ./bin/*
 
+      # Build the production Electron app
       - name: Build Electron App
-        working-directory: ./beacon-frontend
-        # REMOVED: --publish never (the cause of the error)
-        # KEPT: -c.publish=null (the clean way to disable)
-        run: npm run build -- --publish never
+        run: npm run build 
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          CSC_IDENTITY_AUTO_DISCOVERY: false
-          ELECTRON_SKIP_NOTARIZATION: true
-          ELECTRON_PUBLISH: never
-          CI: true
 
       - name: Upload App Installer
         uses: actions/upload-artifact@v4
         with:
           name: installer-${{ matrix.os }}
+          # Note: Adjusted path to handle potential subfolder builds
           path: |
-            beacon-frontend/dist/*.exe
-            beacon-frontend/dist/*.dmg
-            beacon-frontend/dist/*.zip
+            dist/*.exe
+            dist/*.dmg
+            dist/*.zip
+      # Ensure permissions for Mac
+      - name: Set Permissions
+        if: matrix.os == 'macos-latest'
+        run: chmod +x ./bin/*
+
+      # Build the production Electron app
+      - name: Build Electron App
+        run: npm run build 
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload App Installer
+        uses: actions/upload-artifact@v4
+        with:
+          name: installer-${{ matrix.os }}
+          # Note: Adjusted path to handle potential subfolder builds
+          path: |
+            dist/*.exe
+            dist/*.dmg
+            dist/*.zip
 
   # STAGE 3: Final GitHub Release
   create-release:
     needs: build-electron-app
     runs-on: ubuntu-latest
-    permissions:
-      contents: write # CRITICAL: Stage 3 needs permission to create the release
     steps:
       - name: Download All Installers
         uses: actions/download-artifact@v4
-        with:
-          path: ./artifacts # Put everything in one known directory
-
-      - name: List files (Debug)
-        run: ls -R ./artifacts # This lets you see exactly where the files are if it fails
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           prerelease: true
-          # Use a simpler wildcard that looks inside the artifact folders
           files: |
-            artifacts/installer-windows-latest/**/*.exe
-            artifacts/installer-macos-latest/**/*.dmg
-            artifacts/installer-macos-latest/**/*.zip
+            installer-windows-latest/*.exe
+            installer-macos-latest/*.dmg
+            installer-macos-latest/*.zip
           generate_release_notes: true
