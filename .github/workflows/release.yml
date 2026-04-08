@@ -33,6 +33,7 @@ jobs:
         with:
           node-version: 20
           cache: 'npm'
+          # Fixed path to the lockfile
           cache-dependency-path: ./frontendv2/package-lock.json
 
       - name: Install Rust Toolchain
@@ -40,43 +41,43 @@ jobs:
         with:
           targets: ${{ matrix.target }}
 
-      - name: Install Dependencies
+      # FIXED: Tell npm to look in the frontend folder
+      - name: Install Frontend Dependencies
+        working-directory: ./frontendv2
         run: npm install
 
-      # 1. Build the Rust NAPI module
       - name: Build Rust Core
         working-directory: ./backendv2
         run: |
           npm install
           npx napi build --release --target ${{ matrix.target }}
 
-      # 2. Stage files for the Electron packager
       - name: Stage Resources
         shell: bash
         run: |
-          mkdir -p bin/target
-          # Standardize the .node filename for the loader
-          cp backendv2/*.node ./bin/target/index.node
+          mkdir -p frontendv2/bin/target
+          # Copy .node from backendv2 to the frontend's staging area
+          cp backendv2/*.node ./frontendv2/bin/target/index.node
           
-          # Move the platform-specific cloudflared
-          cp ${{ matrix.cloudflared_src }} ./bin/target/cloudflared
+          # Copy cloudflared from the root bin to the frontend's staging area
+          cp ${{ matrix.cloudflared_src }} ./frontendv2/bin/target/cloudflared
           
-          # Fix permissions for Unix-like systems
           if [[ "${{ matrix.os }}" != "windows-latest" ]]; then
-            chmod +x ./bin/target/cloudflared
+            chmod +x ./frontendv2/bin/target/cloudflared
           fi
 
-      # 3. Package the installers (No Token Required)
+      # FIXED: Run the build inside the frontend folder
       - name: Build App Installer
+        working-directory: ./frontendv2
         run: npm run build
         env:
           CSC_IDENTITY_AUTO_DISCOVERY: false 
 
-      # 4. Export the DMG and EXE
       - name: Upload Artifacts
         uses: actions/upload-artifact@v4
         with:
           name: Beacon-${{ matrix.platform }}
+          # Path adjusted to where electron-builder outputs
           path: |
-            dist/*.exe
-            dist/*.dmg
+            frontendv2/dist/*.exe
+            frontendv2/dist/*.dmg
