@@ -1,0 +1,6 @@
+exclude:
+  - backendv2
+  - bin
+  - node_modules
+  - dist
+  - vendor
