@@ -12,10 +12,42 @@ export const wait = (ms: number) => new Promise(resolve => setTimeout(resolve, m
 // This is essential if you are calling Rust via N-API or similar
 const requireNative = createRequire(import.meta.url);
 
-const rust = requireNative('./bin/index.darwin-arm64.node');
-console.log('rust binary loaded successfully')
+//const rust = requireNative('./bin/index.darwin-arm64.node');
+//console.log('rust binary loaded successfully')
 
 
+let rust: any;
+
+const isProd = app.isPackaged;
+
+// Helper to get the correct path regardless of dev/prod
+const getBinPath = () => {
+  if (isProd) {
+    // Standard location for extraResources in packaged apps
+    return path.join(process.resourcesPath, 'bin', 'index.darwin-arm64.node');
+  } else {
+    // app.getAppPath() usually points to your project root in dev
+    return path.join(app.getAppPath(), 'bin', 'index.darwin-arm64.node');
+  }
+};
+
+
+const binPath = getBinPath();
+
+try {
+  rust = requireNative(binPath);
+  console.log('Rust exports:', Object.keys(rust));
+} catch (err) {
+  console.error('Core Logic Error: Failed to load Rust binary.');
+  console.error('Attempted path:', binPath);
+  console.error(err);
+}
+
+
+console.log(binPath);
+
+
+console.log(rust)
 
 
 function registerIpcHandlers() {
