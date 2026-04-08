@@ -4,7 +4,7 @@ use crate::get_resource_path;
 use std::{fs, thread};
 use std::process::{Child, Command, Stdio};
 use std::io::{BufRead, BufReader, Write};
-use std::os::unix::process::CommandExt;
+
 use napi_derive::napi;
 use std::sync::Mutex;   
 use lazy_static::lazy_static;
@@ -13,6 +13,9 @@ use napi::threadsafe_function::{ThreadsafeFunction, ThreadsafeFunctionCallMode};
 use crate::models::container::ContainerConfig;
 use crate::containerizer::containers::SpawnResult;
 use dashmap::DashMap;
+
+#[cfg(unix)]
+use std::os::unix::process::CommandExt;
 
 
 
