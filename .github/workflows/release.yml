@@ -1,197 +1,81 @@
-name: Release Beacon
-
+name: Build Beacon Installers
 on:
   push:
-    tags: ['v*']
-
-permissions:
-  contents: write
-# ------------------------
+    branches: [ main ]
+  workflow_dispatch:
 
 jobs:
-  # NEW STAGE: Build the Linux Backend API (For Docker)
-  # We do this once on Ubuntu to ensure compatibility with Docker containers.
-  build-backend-linux:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout Code
-        uses: actions/checkout@v4
-
-      - name: Set up Rust
-        uses: dtolnay/rust-toolchain@stable
-        with:
-          targets: x86_64-unknown-linux-gnu
-
-      - name: Install Cross-Linker
-        if: runner.os == 'Linux'
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y gcc-x86-64-linux-gnu
-
-      - name: Build Backend (Linux)
-        working-directory: ./backend
-        run: cargo build --release --target x86_64-unknown-linux-gnu
-
-      - name: Upload Linux Backend
-        uses: actions/upload-artifact@v4
-        with:
-          name: backend-linux-bin
-          path: backend/target/x86_64-unknown-linux-gnu/release/backend
-
-  # STAGE 1: Build & Assemble the Host Release (Multi-Platform)
-  build-host-release:
-    needs: build-backend-linux
+  build:
+    runs-on: ${{ matrix.os }}
     strategy:
+      fail-fast: false
       matrix:
         include:
           - os: windows-latest
             target: x86_64-pc-windows-msvc
-            suffix: -windows
+            platform: windows
+            cloudflared_src: bin/windows/cloudflared.exe
           - os: macos-latest
             target: aarch64-apple-darwin
-            suffix: -macos
-    runs-on: ${{ matrix.os }}
-    steps:
-      - name: Checkout Code
-        uses: actions/checkout@v4
-        with:
-          path: Beacon
+            platform: macos-arm64
+            cloudflared_src: bin/macOS/cloudflared
+          - os: macos-latest
+            target: x86_64-apple-darwin
+            platform: macos-x64
+            cloudflared_src: bin/macOS/cloudflared
 
-      # 1. Build Vue Frontend (Platform Independent)
-      - name: Set up Node.js
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 20
-      - name: Build Frontend
-        working-directory: ./Beacon/beacon-frontend
+          cache: 'npm'
+
+      - name: Install Rust Toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      - name: Install Dependencies
+        run: npm install
+
+      # 1. Build the Rust NAPI module
+      - name: Build Rust Core
+        working-directory: ./backendv2
         run: |
           npm install
-          npm run build
+          npx napi build --release --target ${{ matrix.target }}
 
-      # 2. Build Host Orchestrator (Native)
-      - name: Set up Rust
-        uses: dtolnay/rust-toolchain@stable
-        with:
-          targets: ${{ matrix.target }}
-      
-      - name: Build Host Orchestrator
-        working-directory: ./Beacon/beacon-host
-        run: cargo build --release --target ${{ matrix.target }}
-
-      # 3. Fetch the Linux Backend binary built in the previous job
-      - name: Download Linux Backend
-        uses: actions/download-artifact@v4
-        with:
-          name: backend-linux-bin
-          path: ./Beacon/backend/target/linux-release/
-
-      # 4. Assemble Release Folder (Platform Aware)
-      - name: Package Host Release
+      # 2. Stage files for the Electron packager
+      - name: Stage Resources
         shell: bash
         run: |
-          mkdir -p ./host-release/bin
-          mkdir -p ./host-release/frontend
+          mkdir -p bin/target
+          # Standardize the .node filename for the loader
+          cp backendv2/*.node ./bin/target/index.node
           
-          # Detect native executable extension for Host Orchestrator
-          EXT=""
-          if [ "${{ matrix.os }}" = "windows-latest" ]; then EXT=".exe"; fi
+          # Move the platform-specific cloudflared
+          cp ${{ matrix.cloudflared_src }} ./bin/target/cloudflared
           
-          # Copy Binaries
-          # NOTE: Backend is ALWAYS the linux version for the Docker container
-          cp ./Beacon/backend/target/linux-release/backend ./host-release/bin/backend
-          # Host Orchestrator remains native to the Runner OS
-          cp ./Beacon/beacon-host/target/${{ matrix.target }}/release/beacon-host$EXT ./host-release/
-          
-          # Copy Web Files & Configs
-          cp -rp ./Beacon/beacon-frontend/dist/. ./host-release/frontend/
-          cp ./Beacon/release-docker-compose.yml ./host-release/docker-compose.yml
-          cp -r ./Beacon/nginx/prod.conf ./host-release/nginx/default.conf
-          sudo cp ./Beacon/prod.env ./host-release/.env
-          cp ./Beacon/database/ ./host-release/
-
-
-      - name: Upload Host Artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: beacon-host-release${{ matrix.suffix }}
-          path: ./host-release/
-
-  # STAGE 2: Build the Client Release (Multi-Platform)
-  build-client-release:
-    strategy:
-      matrix:
-        include:
-          - os: windows-latest
-            target: x86_64-pc-windows-msvc
-            suffix: -windows
-          - os: macos-latest
-            target: aarch64-apple-darwin
-            suffix: -macos
-    runs-on: ${{ matrix.os }}
-    steps:
-      - name: Checkout Code
-        uses: actions/checkout@v4
-
-      - name: Set up Rust
-        uses: dtolnay/rust-toolchain@stable
-        with:
-          targets: ${{ matrix.target }}
-
-      - name: Build and Package Client
-        shell: bash
-        run: |
-          # 1. Navigate to the project folder
-          cd beacon-client || { echo "Directory 'beacon-client' not found"; exit 1; }
-          
-          # 2. Build Native Client
-          cargo build --release --target ${{ matrix.target }}
-          
-          # 3. Prep the release folder
-          cd ..
-          mkdir -p ./client-release
-          
-          # 4. Copy the binary
-          EXT=""
-          if [ "${{ matrix.os }}" = "windows-latest" ]; then EXT=".exe"; fi
-          SOURCE="./beacon-client/target/${{ matrix.target }}/release/beacon-client$EXT"
-          
-          if [ -f "$SOURCE" ]; then
-            cp "$SOURCE" ./client-release/beacon-client${{ matrix.suffix }}$EXT
-          else
-            echo "Error: Binary not found at $SOURCE"
-            exit 1
+          # Fix permissions for Unix-like systems
+          if [[ "${{ matrix.os }}" != "windows-latest" ]]; then
+            chmod +x ./bin/target/cloudflared
           fi
 
-      - name: Upload Client Artifact
+      # 3. Package the installers (No Token Required)
+      - name: Build App Installer
+        run: npm run build
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: false 
+
+      # 4. Export the DMG and EXE
+      - name: Upload Artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: beacon-client-release${{ matrix.suffix }}
-          path: ./client-release/
-
-  # STAGE 3: Final GitHub Release
-  create-release:
-    needs: [build-host-release, build-client-release]
-    runs-on: ubuntu-latest
-    if: startsWith(github.ref, 'refs/tags/')
-    steps:
-      - name: Download All Artifacts
-        uses: actions/download-artifact@v4
-
-      # --- NEW BUNDLING STEP ---
-      - name: Archive Host Folders
-        run: |
-          # Zip the Windows Host folder
-          zip -r beacon-host-windows.zip beacon-host-release-windows/
-          
-          # Tar the macOS Host folder (better for Unix permissions)
-          tar -czvf beacon-host-macos.tar.gz beacon-host-release-macos/
-
-      - name: Create Release
-        uses: softprops/action-gh-release@v2 # Updated to v2
-        with:
-          files: |
-            beacon-host-windows.zip
-            beacon-host-macos.tar.gz
-            beacon-client-release-windows/beacon-client-windows.exe
-            beacon-client-release-macos/beacon-client-macos
-          generate_release_notes: true
+          name: Beacon-${{ matrix.platform }}
+          path: |
+            dist/*.exe
+            dist/*.dmg

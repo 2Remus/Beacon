@@ -18,53 +18,37 @@
     "build": "vite build && electron-builder"
   },
   "build": {
-    "appId": "com.beacon.app",
+    "appId": "com.adafaralph.beacon",
     "productName": "Beacon",
+    "forceCodeSigning": false,
     "directories": {
-      "output": "dist",
-      "buildResources": "build"
+      "output": "dist"
     },
     "files": [
       "dist/**/*",
-      "electron-main.cjs",
-      "package.json"
+      "electron-main.js"
     ],
     "extraResources": [
       {
-        "from": "bin/",
-        "to": "bin/",
-        "filter": [
-          "**/*"
-        ]
+        "from": "bin/target/index.node",
+        "to": "index.node"
+      },
+      {
+        "from": "bin/target/cloudflared",
+        "to": "bin/cloudflared"
+      },
+      {
+        "from": "db.json",
+        "to": "servers.json"
       }
     ],
     "mac": {
-      "identity": null,
-      "entitlements": null,
-      "entitlementsInherit": null,
-      "hardenedRuntime": false,
-      "gatekeeperAssess": false
+      "target": ["dmg"],
+      "identity": null
     },
     "win": {
-      "icon": null,
-      "target": [
-        {
-          "target": "nsis",
-          "arch": [
-            "x64"
-          ]
-        }
-      ]
-    },
-    "nsis": {
-      "oneClick": false,
-      "allowToChangeInstallationDirectory": true,
-      "createDesktopShortcut": true,
-      "perMachine": false,
-      "installerIcon": null,
-      "uninstallerIcon": null
-    },
-    "publish": []
+      "target": ["nsis"]
+    }
   },
   "dependencies": {
     "@heroicons/vue": "^2.2.0",
