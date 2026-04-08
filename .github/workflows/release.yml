@@ -41,12 +41,12 @@ jobs:
         with:
           targets: ${{ matrix.target }}
 
-      - name: Install Build Dependencies (Windows)
+   - name: Install Build Dependencies (Windows)
         if: matrix.os == 'windows-latest'
         run: |
           choco install nasm cmake
-          # Add NASM to the path explicitly
-          echo "C:\Program Files\NASM" >> $GITHUB_PATH
+          # Using PowerShell syntax to update the path
+          echo "C:\Program Files\NASM" >> $env:GITHUB_PATH
 
       - name: Setup MSVC (Windows only)
         if: matrix.os == 'windows-latest'
