@@ -14,7 +14,8 @@ jobs:
           - os: windows-latest
             target: x86_64-pc-windows-msvc
             platform: windows
-            cloudflared_src: bin/windows/cloudflared-linux-amd64
+            # FIXED: Pointing to windows binary instead of linux
+            cloudflared_src: bin/windows/cloudflared.exe 
           - os: macos-latest
             target: aarch64-apple-darwin
             platform: macos-arm64
@@ -33,7 +34,6 @@ jobs:
         with:
           node-version: 20
           cache: 'npm'
-          # Fixed path to the lockfile
           cache-dependency-path: ./frontendv2/package-lock.json
 
       - name: Install Rust Toolchain
@@ -41,7 +41,6 @@ jobs:
         with:
           targets: ${{ matrix.target }}
 
-      # FIXED: Tell npm to look in the frontend folder
       - name: Install Frontend Dependencies
         working-directory: ./frontendv2
         run: npm install
@@ -56,28 +55,28 @@ jobs:
         shell: bash
         run: |
           mkdir -p frontendv2/bin/target
-          # Copy .node from backendv2 to the frontend's staging area
+          
+          # Copy .node from backendv2
           cp backendv2/*.node ./frontendv2/bin/target/index.node
           
-          # Copy cloudflared from the root bin to the frontend's staging area
-          cp ${{ matrix.cloxudflared_src }} ./frontendv2/bin/target/cloudflared
+          # FIXED typo: cloxudflared -> cloudflared
+          cp "${{ matrix.cloudflared_src }}" ./frontendv2/bin/target/cloudflared
           
           if [[ "${{ matrix.os }}" != "windows-latest" ]]; then
             chmod +x ./frontendv2/bin/target/cloudflared
           fi
 
-      # FIXED: Run the build inside the frontend folder
       - name: Build App Installer
         working-directory: ./frontendv2
         run: npm run build
         env:
-          CSC_IDENTITYx_AUTO_DISCOVERY: false 
+          # FIXED typo: CSC_IDENTITYx -> CSC_IDENTITY
+          CSC_IDENTITY_AUTO_DISCOVERY: false 
 
       - name: Upload Artifacts
         uses: actions/upload-artifact@v4
         with:
           name: Beacon-${{ matrix.platform }}
-          # Path adjusted to where electron-builder outputs
           path: |
             frontendv2/dist/*.exe
             frontendv2/dist/*.dmg
