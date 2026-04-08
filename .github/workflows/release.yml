@@ -65,7 +65,7 @@ jobs:
           # We run cargo check first to see errors without the napi wrapper
           cargo check --target ${{ matrix.target }}
           # Then attempt the build with verbose logging
-          npx napi build --release --target ${{ matrix.target }} --verbose
+          npx napi build --release --target ${{ matrix.target }}
 
       - name: Stage Resources
         shell: bash
