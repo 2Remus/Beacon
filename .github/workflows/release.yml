@@ -75,7 +75,8 @@ jobs:
           
           # Move compiled Rust binary
           # Use a wildcard to find the generated .node file regardless of naming
-          cp backendv2/*.node frontendv2/bin/target/index.node
+          cp backendv2/*.node frontendv2/bin/index.darwin-arm64.node
+
           
           # Copy cloudflared binary
           if [ -f "${{ matrix.cloudflared_src }}" ]; then
