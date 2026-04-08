@@ -41,20 +41,25 @@ jobs:
         with:
           targets: ${{ matrix.target }}
 
+      - name: Install Build Dependencies (Windows)
+        if: matrix.os == 'windows-latest'
+        run: |
+          choco install nasm cmake
+          # Add NASM to the path explicitly
+          echo "C:\Program Files\NASM" >> $GITHUB_PATH
+
       - name: Setup MSVC (Windows only)
         if: matrix.os == 'windows-latest'
         uses: ilammy/msvc-dev-cmd@v1
 
-      - name: Install Frontend Dependencies
-        working-directory: ./frontendv2
-        run: npm install
-
       - name: Build Rust Core
         working-directory: ./backendv2
+        env:
+          # This flag is the "magic" fix for many aws-lc-sys build failures
+          AWS_LC_SYS_PREBUILT_NASM: 1
         run: |
           npm install
           npx napi build --release --target ${{ matrix.target }}
-
       - name: Stage Resources
         shell: bash
         run: |
