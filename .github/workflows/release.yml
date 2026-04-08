@@ -58,7 +58,7 @@ jobs:
         run: |
           npm install
           # Added --verbose to debug the E0433 resolution error
-          npx napi build --release --target ${{ matrix.target }} --verbose
+          npx napi build --release --target ${{ matrix.target }}
 
       - name: Stage Resources
         shell: bash
