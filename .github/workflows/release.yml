@@ -22,7 +22,7 @@ jobs:
           - os: macos-latest
             target: x86_64-apple-darwin
             platform: macos-x64
-            cloudflared_src: bin/macOS/cloudflared
+            cloudflared_src: bin/mac/cloudflared
 
     steps:
       - name: Checkout Repository
