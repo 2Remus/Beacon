@@ -4,24 +4,26 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-once_cell = "1.21.4"
-bollard = "0.20.2"
-sqlx = "0.9.0-alpha.1"
-napi = { version = "2.12", features = ["async", "tokio_rt"] }
-napi-derive = "2.12"
-tokio = { version = "1.50.0", features = ["fs"] }
-dirs = "6.0.0"
-log = "0.4.29"
-serde = { version = "1.0.228", features = ["derive"] }
-serde_json = "1.0.149"
-lazy_static = "1.5.0"
-reqwest = { version = "0.13.2", features = ["json"] }
-strum_macros = "0.28.0"
-dashmap = "7.0.0-rc2"
+# Core N-API - Updated to latest stable
+napi = { version = "2.16", features = ["async", "tokio_rt"] }
+napi-derive = "2.16"
 
+# Async Runtime - Ensure macros and full runtime are present for reqwest/bollard
+tokio = { version = "1.38", features = ["fs", "rt-multi-thread", "macros"] }
+
+# Utilities
+once_cell = "1.19"
+dirs = "5.0"
+log = "0.4"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+lazy_static = "1.4"
+strum_macros = "0.26"
+dashmap = "6.0"
+
+[build-dependencies]
+napi-build = "2.1"
 
 [lib]
-name = "backendv2"     # This should match your project name
-crate-type = ["cdylib"] # Tells Rust to build a dynamic library for NAPI
-path = "src/lib.rs"
-
+name = "backendv2"
+crate-type = ["cdylib"]

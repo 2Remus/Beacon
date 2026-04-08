@@ -6,3 +6,10 @@ backendv2/target/
 *.node
 backendv2/*.node
 frontendv2/bin/*.node
+
+
+node_modules/
+dist/
+target/
+*.node
+.env
