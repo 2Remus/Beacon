@@ -15,7 +15,7 @@ use crate::database::add_server::add_server;
 use crate::models::container::ContainerConfig;
 use crate::models::ServerStorage::Provider;
 use tokio::fs::File as AsyncFile;
-use tokio::io::AsyncWriteExt;
+//use tokio::io::AsyncWriteExt;
 
 #[napi]
 pub async fn create_server(
@@ -99,15 +99,13 @@ async fn ensure_jar_exists(provider: &Provider, version: &str) -> napi::Result<P
         fs::create_dir_all(&cache_dir).map_err(|e| napi::Error::from_reason(e.to_string()))?;
     }
 
-    let jar_name = format!("{}-{}.jar", provider, version);
+    // Fixed: provider needs to be Displayed as a string for format!
+    let jar_name = format!("{:?}-{}.jar", provider, version);
     let target_path = cache_dir.join(&jar_name);
 
     if target_path.exists() {
         return Ok(target_path);
     }
-    
-    
-    
 
     // Create a client with a User-Agent (Required for Paper v3)
     let client = Client::builder()
@@ -117,23 +115,30 @@ async fn ensure_jar_exists(provider: &Provider, version: &str) -> napi::Result<P
 
     let download_url = match provider {
         Provider::Paper => {
-            // 1. Get builds for the version (using stable v2 API)
+            // 1. Get builds for the version
             let api_url = format!("https://api.papermc.io/v2/projects/paper/versions/{}", version);
-            let resp: Value = client.get(&api_url).send().await
+
+            // Added explicit type annotation to the .json::<Value>() call
+            let resp = client.get(&api_url).send().await
                 .map_err(|e| napi::Error::from_reason(format!("Paper API failure: {}", e)))?
-                .json().await
+                .json::<Value>().await
                 .map_err(|e| napi::Error::from_reason(format!("Invalid JSON from Paper: {}", e)))?;
 
             let build_id = resp["builds"].as_array()
                 .and_then(|b| b.last())
-                .and_then(|last| last.as_u64())
+                .and_then(|last| {
+                    last.as_u64().map(|id| id.to_string())
+                        .or_else(|| last.as_str().map(|s| s.to_string()))
+                })
                 .ok_or_else(|| napi::Error::from_reason(format!("No Paper builds found for version {}", version)))?;
 
             // 2. Get build info for the filename
             let build_url = format!("{}/builds/{}", api_url, build_id);
-            let build_info: Value = client.get(&build_url).send().await
+
+            // Added explicit type annotation here as well
+            let build_info = client.get(&build_url).send().await
                 .map_err(|e| napi::Error::from_reason(e.to_string()))?
-                .json().await
+                .json::<Value>().await
                 .map_err(|e| napi::Error::from_reason(e.to_string()))?;
 
             let file_name = build_info["downloads"]["application"]["name"].as_str()
@@ -145,9 +150,11 @@ async fn ensure_jar_exists(provider: &Provider, version: &str) -> napi::Result<P
 
         Provider::Vanilla => {
             let manifest_url = "https://launchermeta.mojang.com/mc/game/version_manifest.json";
-            let manifest: Value = client.get(manifest_url).send().await
+
+            // Annotating the manifest fetch
+            let manifest = client.get(manifest_url).send().await
                 .map_err(|e| napi::Error::from_reason(e.to_string()))?
-                .json().await
+                .json::<Value>().await
                 .map_err(|e| napi::Error::from_reason(e.to_string()))?;
 
             let version_url = manifest["versions"].as_array()
@@ -155,9 +162,10 @@ async fn ensure_jar_exists(provider: &Provider, version: &str) -> napi::Result<P
                 .and_then(|entry| entry["url"].as_str())
                 .ok_or_else(|| napi::Error::from_reason(format!("Vanilla version {} not found", version)))?;
 
-            let metadata: Value = client.get(version_url).send().await
+            // Annotating the metadata fetch
+            let metadata = client.get(version_url).send().await
                 .map_err(|e| napi::Error::from_reason(e.to_string()))?
-                .json().await
+                .json::<Value>().await
                 .map_err(|e| napi::Error::from_reason(e.to_string()))?;
 
             metadata["downloads"]["server"]["url"].as_str()
@@ -166,8 +174,6 @@ async fn ensure_jar_exists(provider: &Provider, version: &str) -> napi::Result<P
         },
 
         Provider::Forge => {
-            // Note: This is the installer. Post-download, you must run this with 'java -jar' 
-            // to generate the actual server files in the instance directory.
             format!(
                 "https://maven.minecraftforge.net/net/minecraftforge/forge/{0}/forge-{0}-installer.jar",
                 version
@@ -176,9 +182,6 @@ async fn ensure_jar_exists(provider: &Provider, version: &str) -> napi::Result<P
 
         _ => return Err(napi::Error::from_reason("Unsupported provider selected")),
     };
-
-
-
 
     let response = client.get(&download_url).send().await
         .map_err(|e| napi::Error::from_reason(format!("Network error: {}", e)))?;
@@ -191,8 +194,9 @@ async fn ensure_jar_exists(provider: &Provider, version: &str) -> napi::Result<P
     let bytes = response.bytes().await
         .map_err(|e| napi::Error::from_reason(format!("Failed to read stream: {}", e)))?;
 
-    // Create the file using Tokyo's async file handler
-    let mut dest = AsyncFile::create(&target_path).await
+    // Fixed: Using tokio::fs::File (aliased as AsyncFile) and importing AsyncWriteExt for methods
+    use tokio::io::AsyncWriteExt;
+    let mut dest = tokio::fs::File::create(&target_path).await
         .map_err(|e| napi::Error::from_reason(format!("Disk error: {}", e)))?;
 
     dest.write_all(&bytes).await
@@ -201,7 +205,6 @@ async fn ensure_jar_exists(provider: &Provider, version: &str) -> napi::Result<P
     // Ensure the data is flushed to the SSD before returning to Electron
     dest.sync_all().await
         .map_err(|e| napi::Error::from_reason(format!("Flush failed: {}", e)))?;
-
 
     Ok(target_path)
 }
