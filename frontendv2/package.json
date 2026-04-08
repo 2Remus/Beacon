@@ -2,8 +2,8 @@
   "name": "beacon-frontend",
   "version": "1.0.0",
   "description": "Beacon Desktop Application",
-  "author": "Your Name <email@example.com>",
-  "main": "electron-main.cjs",
+  "author": "Adafa Ralph <adafax4@gmail.com>",
+  "main": "electron-main.ts",
   "private": true,
   "type": "module",
   "engines": {
