@@ -2,11 +2,6 @@ name: Deploy Landing Page
 on:
   push:
     branches: [ main ]
-    paths:
-      - 'src/**' # Only run when frontend files change
-      - 'public/**'
-      - 'index.html'
-
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
