@@ -5,18 +5,18 @@ use std::path::{Path, PathBuf};
 use napi_derive::napi;
 use strum_macros::Display;
 
-fn get_app_data_path() -> PathBuf {
-    #[cfg(target_os = "windows")]{
-        Pathbuf::from(env::var("APPDATA").unwrap()).join("Beacon")
-    }
-    #[cfg(target_os = "macos")]{
-        let home = env::var("HOME").unwrap();
-            PathBuf::from(&home)
-                .join("Library")
-                .join("Application Support")
-                .join("Beacon")
-    }
-}
+// fn get_app_data_path() -> PathBuf {
+//     #[cfg(target_os = "windows")]{
+//         Pathbuf::from(env::var("APPDATA").unwrap()).join("Beacon")
+//     }
+//     #[cfg(target_os = "macos")]{
+//         let home = env::var("HOME").unwrap();
+//             PathBuf::from(&home)
+//                 .join("Library")
+//                 .join("Application Support")
+//                 .join("Beacon")
+//     }
+// }
 
 
 
@@ -65,16 +65,16 @@ pub struct CreateServerRequest{
 
 
 
-impl ServerRegistry {
-    pub fn load() -> Self {
-        let path = get_app_data_path().join("servers.json");
-        let data = fs::read_to_string(path).unwrap_or_else(|_| r#"{"instances": []}"#.to_string());
-        serde_json::from_str(&data).unwrap()
-    }
-
-    pub fn save(&self) -> std::io::Result<()> {
-        let path = get_app_data_path().join("servers.json");
-        let data = serde_json::to_string_pretty(self)?;
-        fs::write(path, data)
-    }
-}
+// impl ServerRegistry {
+//     pub fn load() -> Self {
+//         let path = get_app_data_path().join("servers.json");
+//         let data = fs::read_to_string(path).unwrap_or_else(|_| r#"{"instances": []}"#.to_string());
+//         serde_json::from_str(&data).unwrap()
+//     }
+// 
+//     pub fn save(&self) -> std::io::Result<()> {
+//         let path = get_app_data_path().join("servers.json");
+//         let data = serde_json::to_string_pretty(self)?;
+//         fs::write(path, data)
+//     }
+// }
