@@ -33,6 +33,7 @@ jobs:
         with:
           node-version: 20
           cache: 'npm'
+          cache-dependency-path: ./frontendv2/package-lock.json
 
       - name: Install Rust Toolchain
         uses: dtolnay/rust-toolchain@stable
