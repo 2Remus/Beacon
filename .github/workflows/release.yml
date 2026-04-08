@@ -14,11 +14,11 @@ jobs:
           - os: windows-latest
             target: x86_64-pc-windows-msvc
             platform: windows
-            cloudflared_src: bin/windows/cloudflared.exe
+            cloudflared_src: bin/windows/cloudflared-linux-amd64
           - os: macos-latest
             target: aarch64-apple-darwin
             platform: macos-arm64
-            cloudflared_src: bin/macOS/cloudflared
+            cloudflared_src: bin/mac/cloudflared
           - os: macos-latest
             target: x86_64-apple-darwin
             platform: macos-x64
@@ -60,7 +60,7 @@ jobs:
           cp backendv2/*.node ./frontendv2/bin/target/index.node
           
           # Copy cloudflared from the root bin to the frontend's staging area
-          cp ${{ matrix.cloudflared_src }} ./frontendv2/bin/target/cloudflared
+          cp ${{ matrix.cloxudflared_src }} ./frontendv2/bin/target/cloudflared
           
           if [[ "${{ matrix.os }}" != "windows-latest" ]]; then
             chmod +x ./frontendv2/bin/target/cloudflared
@@ -71,7 +71,7 @@ jobs:
         working-directory: ./frontendv2
         run: npm run build
         env:
-          CSC_IDENTITY_AUTO_DISCOVERY: false 
+          CSC_IDENTITYx_AUTO_DISCOVERY: false 
 
       - name: Upload Artifacts
         uses: actions/upload-artifact@v4
