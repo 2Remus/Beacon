@@ -59,10 +59,13 @@ jobs:
         working-directory: ./backendv2
         env:
           AWS_LC_SYS_PREBUILT_NASM: 1
+          CARGO_TERM_COLOR: always
         run: |
           npm install
-          # npx napi build automatically places the .node file in the working directory
-          npx napi build --release --target ${{ matrix.target }}
+          # We run cargo check first to see errors without the napi wrapper
+          cargo check --target ${{ matrix.target }}
+          # Then attempt the build with verbose logging
+          npx napi build --release --target ${{ matrix.target }} --verbose
 
       - name: Stage Resources
         shell: bash
