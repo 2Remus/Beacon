@@ -70,3 +70,7 @@ pub fn stop_nginx() -> napi::Result<String> {
     }
 
 }
+
+// pub fn new_server() -> napi::Result<String> {
+// 
+// }

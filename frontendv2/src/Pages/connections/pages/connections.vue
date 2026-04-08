@@ -1,11 +1,11 @@
 <script setup>
-import { ref, onMounted, onUnmounted } from 'vue';
+import { ref, onMounted, onUnmounted, watch } from 'vue';
 
-const tunnelStatus = ref('offline'); // 'RUNNING', 'offline', 'error'
-const connections = ref([]);
+const tunnelStatus = ref(localStorage.getItem('tunnel_status') || 'offline');
+const connections = ref(JSON.parse(localStorage.getItem('tunnel_connections') || '[]'));
 const isUpdating = ref(false);
 const errorMsg = ref('');
-const publicUrl = ref(''); // To store the cleaned .trycloudflare.com link
+const publicUrl = ref(localStorage.getItem('tunnel_url') || '');
 
 // Helper to extract the URL from the messy Cloudflare log string
 const cleanUrl = (rawUrl) => {
@@ -14,16 +14,21 @@ const cleanUrl = (rawUrl) => {
   return match ? match[0] : rawUrl;
 };
 
+// Persistence Watchers: Save basic info to localStorage whenever they change
+watch([tunnelStatus, publicUrl, connections], ([newStatus, newUrl, newConns]) => {
+  localStorage.setItem('tunnel_status', newStatus);
+  localStorage.setItem('tunnel_url', newUrl);
+  localStorage.setItem('tunnel_connections', JSON.stringify(newConns));
+});
+
 const toggleTunnel = async () => {
   isUpdating.value = true;
-  if (tunnelStatus.value === 'offline') {
+  if (tunnelStatus.value === 'offline' || tunnelStatus.value === 'error') {
     try {
-      // Note: ensure the method name matches your preload.js (startCloudflare vs startCloudflared)
       const res = await window.electron.startCloudflare(25565);
 
       console.log('Tunnel Response:', res);
 
-      // Update refs with data from the Proxy object
       tunnelStatus.value = res.status; // "RUNNING"
       publicUrl.value = cleanUrl(res.url);
       connections.value = res.connections || [];
@@ -36,24 +41,21 @@ const toggleTunnel = async () => {
       isUpdating.value = false;
     }
   }
-  else{
-    try{
-      window.electron.stopCloudflare();
-      tunnelStatus.value = "offline"; // "RUNNING"
+  else {
+    try {
+      await window.electron.stopCloudflare();
+      tunnelStatus.value = "offline";
       publicUrl.value = "";
-      connections.value =  [];
-    }catch(err){
+      connections.value = [];
+    } catch (err) {
       console.error('Tunnel Error:', err);
-    }finally {
+    } finally {
       isUpdating.value = false;
     }
   }
-
 };
 
-// If you have a separate API for stats, keep this, otherwise we rely on the Electron toggle
 const fetchTunnelData = async () => {
-  // If the tunnel isn't running, don't bother polling the local API
   if (tunnelStatus.value !== 'RUNNING') return;
 
   try {
@@ -63,12 +65,29 @@ const fetchTunnelData = async () => {
       connections.value = data.active_connections;
     }
   } catch (err) {
-    // Silently fail polling to avoid UI flicker
+    // Silently fail
   }
 };
 
 let interval;
-onMounted(() => {
+onMounted(async () => {
+  // Persistence Handshake: Check if the sidecar is already running in the background
+  try {
+    if (window.electron.getTunnelStatus) {
+      const current = await window.electron.getTunnelStatus();
+      if (current && current.status === 'RUNNING') {
+        tunnelStatus.value = 'RUNNING';
+        publicUrl.value = cleanUrl(current.url);
+        connections.value = current.connections || [];
+      } else if (current && current.status === 'offline') {
+        tunnelStatus.value = 'offline';
+        publicUrl.value = '';
+      }
+    }
+  } catch (e) {
+    console.warn("Handshake failed, falling back to local state.");
+  }
+
   interval = setInterval(fetchTunnelData, 5000);
 });
 
@@ -183,16 +202,13 @@ td { padding: 1rem; border-top: 1px solid #1e293b; }
   margin-bottom: 1rem;
 }
 
-
-/* Add these to your existing styles */
-
 .url-display {
   display: block;
   margin-top: 10px;
   background: rgba(0, 0, 0, 0.3);
   padding: 8px 12px;
   border-radius: 6px;
-  color: #3b82f6; /* Beacon Blue */
+  color: #3b82f6;
   font-family: 'Fira Code', monospace;
   font-size: 0.85rem;
   border: 1px solid rgba(59, 130, 246, 0.2);

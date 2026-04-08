@@ -91,6 +91,31 @@ function registerIpcHandlers() {
       console.error("Rust error:", e);
     }
   })
+
+  ipcMain.handle('subscribe-to-logs', (event, serverId: string) => {
+    // Call your Rust #[napi] function
+    // The second argument is the ThreadsafeFunction (callback)
+    rust.streamLogs(serverId, (err: any, logLine: string) => {
+      if (err) {
+        console.error(`Log stream error for ${serverId}:`, err);
+        return;
+      }
+
+      // Send the line to the frontend via a unique channel for this server
+      event.sender.send(`logs:${serverId}`, logLine);
+    });
+  });
+
+
+  ipcMain.handle('stopServers', async (event, serverId: string) => {
+    try{
+      return await rust.killContainers();
+    }catch (e){
+      console.error("Rust error:", e);
+    }
+  })
+
+
 }
 
 
@@ -126,6 +151,35 @@ function createWindow(): void {
     }
   });
 
+  const cleanupResources = () => {
+    console.log("Cleaning up Rust containers...");
+    try {
+      // This calls your N-API function
+      const result = rust.killContainers();
+      console.log(result);
+    } catch (err) {
+      console.error("Failed to kill containers:", err);
+    }
+  };
+
+  app.on('before-quit', () => {
+    console.log("Shutting down... calling Rust cleanup.");
+    cleanupResources();
+  });
+
+
+  ipcMain.handle('kill-container', async (event, id ) => {
+    try{
+        const result = rust.killContainers(id);
+    }catch (e) {
+      console.error("Rust error:", e);
+    }
+  })
+
+
+  ipcMain.handle('tunnel-connect', async (event,id) => {
+    const result = await rust.clientConnect(id);
+  })
   // During development for Project Beacon
   mainWindow.loadURL('http://localhost:5173');
   mainWindow.webContents.openDevTools();
@@ -141,8 +195,9 @@ function createWindow(): void {
 
 
   mainWindow.on('closed', () => {
+    // If this is the only window, quitting will trigger 'before-quit' anyway
     mainWindow = null;
-  });
+  })
 }
 
 // Electron lifecycle management
@@ -162,6 +217,8 @@ app.whenReady().then(() => {
 });
 
 app.on('window-all-closed', () => {
+  // On macOS, apps stay open even without windows.
+  // If you want containers to die when the window closes, keep this here.
   if (process.platform !== 'darwin') {
     app.quit();
   }

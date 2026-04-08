@@ -7,6 +7,7 @@ import MainLayout from "@/views/MainView.vue";
 import { connectionsRoutes } from "../Pages/connections/connections.ts";
 // import { authRoutes } from "../Pages/auth";
 import { dashboardRoutes } from "../Pages/dashboard/dashboard.ts";
+import {connectRoutes} from '@/Pages/connect/connect.ts'
 
 const router = createRouter({
   // Electron usually fails on refresh with WebHistory; HashHistory is safer
@@ -18,6 +19,7 @@ const router = createRouter({
       children: [
         ...connectionsRoutes,
         ...dashboardRoutes,
+        ...connectRoutes
       ]
     },
     // {

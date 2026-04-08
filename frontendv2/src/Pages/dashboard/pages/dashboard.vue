@@ -18,7 +18,7 @@ const selectedType = ref('Vanilla')
 const memoryAlloc = ref('3G')
 const isOnlineMode = ref(false)
 const isDeploying = ref(false)
-const servers = ref([])
+
 
 const serverTypes = [
   { id: 'Vanilla', name: 'Vanilla', logo: '🍦', desc: 'Official Mojang Engine' },
@@ -97,21 +97,27 @@ const fetchServers = async () => {
 /**
  * 2. Log Streaming
  */
-const getServerLog = (name) => {
+const getServerLog = async (id) => {
+  // 1. Clear the current UI console
   logs.value = [];
-  if (logStream) logStream.close();
 
-  logStream = new EventSource(`http://api.beacon.local/api/v1/servers/${name}/logs`);
+  // 2. Set up the listener BEFORE starting the stream
+  // This matches the 'logs:${id}' channel we set up in Electron Main
+  window.electron.onLogUpdate(id, (line) => {
+    logs.value.push(line);
 
-  logStream.onmessage = (event) => {
-    logs.value.push(event.data);
+    // Optional: Auto-scroll logic here
     scrollToBottom();
-  };
+  });
 
-  logStream.onerror = (err) => {
-    console.error("Log Stream Error:", err);
-    logStream.close();
-  };
+  try {
+    // 3. Trigger the Rust thread to start "taking" the stdout pipe
+    // This will return immediately (hence why it was undefined before)
+    await window.electron.getLogs(id);
+    console.log("Stream successfully initialized in Rust");
+  } catch (err) {
+    console.error("Failed to initialize stream:", err);
+  }
 };
 
 const scrollToBottom = async () => {
@@ -127,7 +133,7 @@ const scrollToBottom = async () => {
 const openServerStats = (server) => {
   activeInstance.value = server;
   currentView.value = "stats";
-  getServerLog(server.name);
+  getServerLog(server.id);
 };
 
 const closeStats = () => {
@@ -212,7 +218,7 @@ const deployInstance = async () => {
       newInstanceName.value = '';
 
       // Optional: Refresh the server list or navigate
-      // await fetchServers();
+       await fetchServers();
     } else {
       console.error("Rust Backend Error:", result.error);
     }
@@ -255,8 +261,6 @@ onMounted(async () => {
   fetchServers();
   window.addEventListener('click', closeMenus);
   console.log(import.meta.env.VITE_API_URL)
-
-
 
   // window.electron.onServerUpdate((data) => {
   //   servers.value = data;

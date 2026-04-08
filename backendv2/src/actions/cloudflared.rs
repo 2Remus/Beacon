@@ -107,3 +107,42 @@ pub fn stop_cloudflared(env: Env) -> napi::Result<(String)> {
 }
 
 
+
+#[napi]
+pub fn client_connect(url: String) -> napi::Result<String> {
+    let resource_dir = get_resource_path()?;
+    let cloudflared_bin = get_cloudflared_path(&resource_dir);
+
+    // ... (Your binary existence check here) ...
+
+    let mut child = Command::new(&cloudflared_bin)
+        .args(&[
+            "tunnel",
+            "--url",
+            &url,
+            "--no-autoupdate",
+        ])
+        .stdin(Stdio::piped())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .spawn()
+        .map_err(|e| Error::from_reason(format!("Failed to launch: {}", e)))?;
+
+    let connection_id = format!("tunnel-{}", url);
+
+    // --- MUTEX INSERTION ---
+    {
+        // 1. Acquire the lock. .map_err converts a poisoned lock error into a JS error.
+        let mut registry = ACTIVE_TUNNEL.lock().map_err(|_| {
+            Error::from_reason("Failed to lock ACTIVE_TUNNEL")
+        })?;
+
+        // Instead of .insert(), just wrap the child in Some()
+        *registry = Some(child);
+
+        // The lock is automatically released here when 'registry' goes out of scope
+    }
+
+    println!("[Rust] Started tunnel for: {}", url);
+    Ok(connection_id)
+}

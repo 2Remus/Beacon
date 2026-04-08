@@ -13,9 +13,9 @@
 const menu = [
   { name: 'Server', path: '/', icon: '☰' },
   // { name: 'Options', path: '/settings', icon: '⚙' },
-  // { name: 'Console', path: '/console', icon: '💻' },
   { name: 'Connections', path: '/connections', icon: '🌐' },
-  { name: 'Backend', path: '/backend', icon: '📁' }
+  { name: 'Connect', path: '/connect', icon: '💻' },
+  //{ name: 'Backend', path: '/backend', icon: '📁' }
 ]
 </script>
 

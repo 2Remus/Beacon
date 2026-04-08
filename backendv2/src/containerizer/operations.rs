@@ -1,22 +1,25 @@
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use crate::get_resource_path;
-use std::fs;
+use std::{fs, thread};
 use std::process::{Child, Command, Stdio};
-use std::io::Write;
+use std::io::{BufRead, BufReader, Write};
 use std::os::unix::process::CommandExt;
 use napi_derive::napi;
 use std::sync::Mutex;   
 use lazy_static::lazy_static;
 use napi::{Error,Result};
+use napi::threadsafe_function::{ThreadsafeFunction, ThreadsafeFunctionCallMode};
 use crate::models::container::ContainerConfig;
 use crate::containerizer::containers::SpawnResult;
+use dashmap::DashMap;
+
 
 
 
 lazy_static! {
-    // Maps Server ID (e.g., "Survival-01") to the OS Process
     static ref RUNNING_SERVERS: Mutex<HashMap<String, Child>> = Mutex::new(HashMap::new());
+    pub static ref PROCESS_REGISTRY: DashMap<String, Child> = DashMap::new();
 }
 
 
@@ -25,8 +28,6 @@ pub fn create_container_env(config: ContainerConfig) -> napi::Result<PathBuf> {
     let root = get_resource_path()?.join("containers").join(&config.server_id);
     let jar_source = Path::new(&config.jar_path);
 
-    // 1. Recursive Directory Initialization
-    // We create the entire tree in one go to ensure paths exist for symlinks
     let dirs = ["world", "logs", "plugins", "mods", "config"];
     for dir in &dirs {
         fs::create_dir_all(root.join(dir))
@@ -44,14 +45,12 @@ pub fn create_container_env(config: ContainerConfig) -> napi::Result<PathBuf> {
             .map_err(|e| Error::from_reason(format!("Symlink failed: {}", e)))?;
     }
 
-    // 3. Properties Injection (The "Configuration Layer")
-    // We use a Map-like approach here to make it easier to add more settings later
     let mut properties = Vec::new();
     properties.push(format!("server-port={}", config.port));
     properties.push(format!("query.port={}", config.port));
     properties.push("server-ip=127.0.0.1".to_string()); // Force local binding for Tunnel security
     properties.push("enable-query=true".to_string());
-    properties.push(format!("online-mode={}", config.online_mode));
+    properties.push(format!("online-mode={}", config.online_mode)); //can cause problems should fix later
     properties.push("gui=false".to_string());
 
     if config.enable_rcon {
@@ -119,6 +118,8 @@ pub fn spawn_container(id: String, bin_dir: String, ram: u32) -> Result<SpawnRes
     // We return the PID so the Vue frontend can map this to the UI 'Active' state
     let pid = child.id();
 
+    PROCESS_REGISTRY.insert(id.clone(), child);
+
     Ok(SpawnResult {
         pid,
         log_path: base_path.join("logs/latest.log").to_string_lossy().into_owned(),
@@ -126,28 +127,100 @@ pub fn spawn_container(id: String, bin_dir: String, ram: u32) -> Result<SpawnRes
 }
 
 
+#[napi]
 
-pub fn kill_container(server_id: String) -> napi::Result<(String)>{
+//needs to be studied
+pub fn stream_logs(id: String, callback: ThreadsafeFunction<String>) -> napi::Result<()> {
+    // 1. Get the specific server from the parallel registry
+    let mut registry_entry = PROCESS_REGISTRY.get_mut(&id)
+        .ok_or_else(|| napi::Error::from_reason(format!("Server {} not found", id)))?;
 
-    let mut servers = RUNNING_SERVERS.lock().map_err(|_| Error::from_reason("Lock failed"))?;
+    // 2. Take the stdout handle (ensuring we don't try to take it twice)
+    let stdout = registry_entry.value_mut().stdout.take()
+        .ok_or_else(|| napi::Error::from_reason("Stdout already attached or missing"))?;
 
-    if let Some(mut child) = servers.remove(&server_id){
+    // 3. Spawn a "Watcher Thread" just for this ID
+    thread::spawn(move || {
+        let reader = BufReader::new(stdout);
+        for line in reader.lines() {
+            if let Ok(content) = line {
+                // Push to Electron with the content
+                callback.call(Ok(content), ThreadsafeFunctionCallMode::Blocking);
+            } else {
+                break; // Stream closed (server stopped)
+            }
+        }
+    });
 
-        //try to send the stop command to the stdin
-        if let Some(mut stdin) = child.stdin.take(){
+    Ok(())
+}
+
+
+
+
+
+#[napi]
+pub fn kill_containers() -> napi::Result<String> {
+    let mut count = 0;
+
+    // --- STEP 1: Get keys and drop the iterator immediately ---
+    let keys: Vec<String> = {
+        // The iterator is created and dropped inside this block
+        PROCESS_REGISTRY.iter().map(|r| r.key().clone()).collect()
+    };
+
+    // --- STEP 2: Move processes out of the Map ---
+    let mut processes = Vec::new();
+    for key in keys {
+        // remove() is safe here because the iterator lock above is gone
+        if let Some((_, child)) = PROCESS_REGISTRY.remove(&key) {
+            processes.push(child);
+        }
+    }
+
+    // --- STEP 3: Kill the processes ---
+    for mut child in processes {
+        if let Some(mut stdin) = child.stdin.take() {
+            // Use write_all but don't let it hang the whole function
             let _ = stdin.write_all(b"stop\n");
             let _ = stdin.flush();
         }
 
-        match child.wait() {
-            Ok(status) => Ok(format!("Server stopped with status: {}", status)),
-            Err(_) => {
-                // 3. Fallback: Force Kill if it hangs
-                child.kill().map_err(|e| Error::from_reason(format!("Force kill failed: {}", e)))?;
-                Ok("Server was force-terminated.".to_string())
-            }
+        // Send the SIGKILL signal
+        match child.kill() {
+            Ok(()) => return Ok("Killed container".to_string()),
+            Err(e) => eprintln!("Failed to kill process: {}", e),
         }
-    }else{
-        Err(Error::from_reason(format!("Server not running: {}", server_id)))
     }
+
+
+
+
+    let msg = format!("Successfully terminated {} active server instances.", count);
+    println!("{}", msg); // Print to terminal/console for debugging
+    Ok(msg)
+}
+
+
+#[napi]
+pub async fn kill_container(id: String, force: bool) -> napi::Result<String> {
+
+
+    let mut process = PROCESS_REGISTRY.get_mut(&id);
+
+    if let Some(mut child) = process {
+        if let Some(mut stdin) = child.stdin.take() {
+            let _ = stdin.write_all(b"stop\n");
+            let _ = stdin.flush();
+        }
+
+        match child.kill() {
+            Ok(_) => return Ok("Killed container".to_string()),
+            Err(e) => eprintln!("Failed to kill process: {}", e),
+        }
+
+    }
+
+    let message = format!("Successfully terminated {} active server instances.", id);
+    Ok(message)
 }

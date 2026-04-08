@@ -1,3 +1,8 @@
-/backend/target/
-/beacon-client/target/
-/beacon-host/target/
+# Rust build artifacts
+**/target/
+backendv2/target/
+
+# Node/Electron binaries
+*.node
+backendv2/*.node
+frontendv2/bin/*.node
