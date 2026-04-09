@@ -26,6 +26,8 @@
     },
     "files": [
       "dist/**/*",
+      "preload.js",
+      "package.json",
       "electron-main.ts"
     ],
     "extraResources": [
