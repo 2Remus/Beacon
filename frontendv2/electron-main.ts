@@ -166,7 +166,7 @@ function createWindow(): void {
     }
   });
 
-  splashWindow.loadFile(path.join(__dirname, 'splash.html'));
+  splashWindow.loadFile(path.join(__dirname, '../splash.html'));
   splashWindow.center();
 
   mainWindow = new BrowserWindow({
@@ -219,7 +219,7 @@ function createWindow(): void {
   } else {
     // Load the compiled index.html from the dist folder
     // __dirname in production usually points to the 'dist-electron' or 'resources' folder
-    mainWindow.loadFile(path.join(__dirname, '../dist/index.html'));
+    mainWindow.loadFile(path.join(__dirname, './dist/index.html'));
   }
 
   mainWindow.once('ready-to-show', async () => {

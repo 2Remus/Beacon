@@ -5,6 +5,7 @@ import vueDevTools from 'vite-plugin-vue-devtools'
 
 export default defineConfig(({ command }) => {
   return {
+    base: './',
     plugins: [
       vue(),
       // Only enable devtools in development mode

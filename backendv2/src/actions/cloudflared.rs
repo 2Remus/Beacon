@@ -18,10 +18,10 @@ lazy_static! {
 /// Helper to locate the binary based on OS
 fn get_cloudflared_path(resource_dir: &Path) -> PathBuf {
     if cfg!(windows) {
-        resource_dir.join("bin").join("win32").join("cloudflared.exe")
+        resource_dir.join("bin").join("cloudflared.exe")
     } else {
         // MacOS/Linux
-        resource_dir.join("bin").join("darwin").join("cloudflared")
+        resource_dir.join("bin").join("cloudflared")
     }
 }
 

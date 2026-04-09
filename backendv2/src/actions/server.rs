@@ -109,7 +109,7 @@ async fn ensure_jar_exists(provider: &Provider, version: &str) -> napi::Result<P
 
     // Create a client with a User-Agent (Required for Paper v3)
     let client = Client::builder()
-        .user_agent("ProjectBeacon/1.0 (Software Development Student Project)")
+        .user_agent("ProjectBeacon/1.0 (Software Development Project)")
         .build()
         .map_err(|e| napi::Error::from_reason(e.to_string()))?;
 
