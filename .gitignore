@@ -6,6 +6,9 @@ backendv2/target/
 *.node
 backendv2/*.node
 frontendv2/bin/*.node
+frontendv2/bin/cloudflared
+frontendv2/node_modules/
+frontendv2/dist/
 
 
 node_modules/
