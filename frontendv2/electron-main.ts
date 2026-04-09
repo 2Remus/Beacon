@@ -212,10 +212,15 @@ function createWindow(): void {
   ipcMain.handle('tunnel-connect', async (event,id) => {
     const result = await rust.clientConnect(id);
   })
-  // During development for Project Beacon
-  mainWindow.loadURL('http://localhost:5173');
-  mainWindow.webContents.openDevTools();
-
+  if (!isProd) {
+    // Load from the Vite dev server
+    mainWindow.loadURL('http://localhost:5173');
+    mainWindow.webContents.openDevTools();
+  } else {
+    // Load the compiled index.html from the dist folder
+    // __dirname in production usually points to the 'dist-electron' or 'resources' folder
+    mainWindow.loadFile(path.join(__dirname, '../dist/index.html'));
+  }
 
   mainWindow.once('ready-to-show', async () => {
     await wait(2000);
