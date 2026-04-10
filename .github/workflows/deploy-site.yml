@@ -22,8 +22,8 @@ jobs:
           npm run build # Make sure this command exists in package.json
 
       - name: Deploy to GitHub Pages
-        working-directory: ./beacon-landing
         uses: JamesIves/github-pages-deploy-action@v4
         with:
-          folder: dist # The folder Vite builds into
-          branch: gh-pages # The branch the site lives on
+          # Point directly to the dist folder inside the sub-directory
+          folder: beacon-landing/dist 
+          branch: gh-pages
