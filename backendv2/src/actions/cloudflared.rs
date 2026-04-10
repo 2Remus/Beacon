@@ -46,7 +46,12 @@ fn get_cloudflared_path(resource_dir: &Path) -> Option<PathBuf> {
 pub async fn  start_cloudflared(port: u32) -> napi::Result<cloudflaredRespone>{
 
     let resource_dir = get_resource_path()?;
-    let cloudflared_bin = get_cloudflared_path(&resource_dir);
+    let cloudflared_bin_option: Option<PathBuf> = get_cloudflared_path(&resource_dir);
+
+    // 2. Safely unwrap it or return an error to JS
+    let cloudflared_bin = cloudflared_bin_option.ok_or_else(|| {
+        napi::Error::from_reason("Cloudflared binary not found in bin directory")
+    })?;
 
     if !cloudflared_bin.exists() {
         //download cloudflared
