@@ -7,6 +7,7 @@
     "moduleResolution": "NodeNext",
     "allowSyntheticDefaultImports": true,
     "allowImportingTsExtensions": true,
+    "emitDeclarationOnly": false,
     "skipLibCheck": true,
     "types": ["node"]
   },

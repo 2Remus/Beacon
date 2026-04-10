@@ -26,6 +26,7 @@ pub async fn create_server(
     ram_mb: u32,
     port: u32,
     online_mode: bool,
+    data_dir: String,
 ) -> napi::Result<String> {
 
     // 1. RESOLVE & DOWNLOAD (The Pull Step)
@@ -60,7 +61,7 @@ pub async fn create_server(
         status: "stopped".to_string(),
     };
 
-    let db_path = crate::get_resource_path()?.join("db.json");
+    let db_path = std::path::PathBuf::from(data_dir).join("db.json");
     add_server(&new_server, db_path)?;
 
     Ok(format!("Server {} ({}) provisioned at {:?}", id, &new_server.version, container_path))
@@ -68,16 +69,20 @@ pub async fn create_server(
 
 
 #[napi]
-pub async fn get_servers() -> napi::Result<Vec<MinecraftServer>> {
-    let mut db_path = crate::get_resource_path()?.join("db.json");
+pub async fn get_servers(data_dir: String) -> napi::Result<Vec<MinecraftServer>> {
+    let db_path = std::path::PathBuf::from(data_dir).join("db.json");
 
     // We don't spawn a standard thread manually here;
     // we use tokio (which napi-rs uses under the hood for async)
     // to poll until the file is ready or just read it once.
 
     if !db_path.exists() {
+        // Ensure the directory exists first
+        if let Some(parent) = db_path.parent() {
+            std::fs::create_dir_all(parent)?;
+        }
         std::fs::write(&db_path, "[]")
-            .map_err(|e| napi::Error::from_reason(format!("Failed to create db.json: {}", e)))?;
+            .map_err(|e| napi::Error::from_reason(format!("Init failed: {}", e)))?;
     }
 
     // Instead of a loop that disappears, we just perform the read.

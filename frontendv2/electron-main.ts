@@ -100,6 +100,7 @@ function registerIpcHandlers() {
     // We extract the fields from 'data' and pass them individually
 
     const onlineMode = data.online_mode === true || data.online_mode === 'true';
+    const data_dir = app.getPath('userData');
 
 
     return await rust.createServer(
@@ -110,6 +111,7 @@ function registerIpcHandlers() {
       parseInt(data.ram_mb) || 3072, // Convert "3G" string to a Number
       data.port,
       onlineMode,
+      data_dir
     );
   });
 
