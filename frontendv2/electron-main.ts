@@ -79,8 +79,9 @@ function registerIpcHandlers() {
   // Use .handleOnce if you only need it once, or check if already registered
   ipcMain.handle('startCloudflared', async (event, port) => {
     console.log(`Starting tunnel on port ${port}`);
+    const data_dir = app.getPath('userData').toString();
     try {
-      return await rust.startCloudflared(port);
+      return await rust.startCloudflared(port, data_dir);
     } catch (e) {
       console.error("Rust error:", e);
       throw e; // This will reject the promise in the frontend

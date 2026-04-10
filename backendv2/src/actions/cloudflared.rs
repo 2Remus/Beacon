@@ -107,8 +107,7 @@ pub async fn start_cloudflared(port: u32, data_dir: String) -> napi::Result<clou
     let resource_dir = std::path::PathBuf::from(data_dir);
 
     // FIX 1: Use ok_or_else for Option -> Result conversion
-    let cloudflared_bin = get_cloudflared_path(&resource_dir)
-        .ok_or_else(|| napi::Error::from_reason("Cloudflared binary not found"))?;
+    let cloudflared_bin = get_cloudflared_path(&resource_dir).unwrap();
 
     // FIX 2: spawn() returns a Result. Map the error THEN use '?'
     let mut child = Command::new(&cloudflared_bin)
