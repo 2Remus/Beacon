@@ -19,7 +19,7 @@ jobs:
         working-directory: ./beacon-landing
         run: |
           npm install
-          npm run vite:build # Make sure this command exists in package.json
+          npm run build # Make sure this command exists in package.json
 
       - name: Deploy to GitHub Pages
         uses: JamesIves/github-pages-deploy-action@v4
