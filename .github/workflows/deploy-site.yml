@@ -1,7 +1,11 @@
 name: Deploy Landing Page
 on:
   push:
-    branches: [ main ]
+    branches: [ 2remus-patch-1 ]
+    paths:
+          - 'src/**' # Only run when frontend files change
+          - 'public/**'
+          - 'index.html'
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
