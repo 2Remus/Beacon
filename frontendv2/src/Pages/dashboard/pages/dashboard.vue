@@ -1,16 +1,44 @@
 <script setup>
-import { onMounted, ref, onUnmounted, nextTick, computed, watch, version } from 'vue'
+import { onMounted, ref, onUnmounted, nextTick, computed, watch, reactive } from 'vue'
 
-// --- State Management ---
+/**
+ * --- PERSISTENCE & HISTORY STORAGE ---
+ * Bridges Vue's reactive state with browser sessionStorage.
+ */
+const STORAGE_KEY = 'BEACON_SESSION_LOGS';
+
+const saveToHistory = (id, data) => {
+  try {
+    const history = JSON.parse(sessionStorage.getItem(STORAGE_KEY) || '{}');
+    history[id] = data;
+    sessionStorage.setItem(STORAGE_KEY, JSON.stringify(history));
+  } catch (e) { console.error("History Save Error:", e); }
+};
+
+const loadFromHistory = (id) => {
+  try {
+    const history = JSON.parse(sessionStorage.getItem(STORAGE_KEY) || '{}');
+    return history[id] || [];
+  } catch (e) { return []; }
+};
+
+// Initialize the global store window object if it doesn't exist
+if (!window.__BEACON_STORE__) {
+  window.__BEACON_STORE__ = reactive({
+    logs: {},
+    activeListeners: new Set()
+  });
+}
+const store = window.__BEACON_STORE__;
+
 const isLoading = ref(true)
 const error = ref(null)
 const instances = ref([])
-const currentView = ref("grid") // 'grid' or 'stats'
+const currentView = ref("grid")
 const activeInstance = ref(null)
-const activeMenuId = ref(null) // Tracks which server's 3-dot menu is open
+const activeMenuId = ref(null)
 
-
-// --- Deployment State ---
+// UI Deployment States
 const isCreating = ref(false)
 const newInstanceName = ref('')
 const newInstanceVersion = ref('1.20.1')
@@ -19,7 +47,6 @@ const memoryAlloc = ref('3G')
 const isOnlineMode = ref(false)
 const isDeploying = ref(false)
 
-
 const serverTypes = [
   { id: 'Vanilla', name: 'Vanilla', logo: '🍦', desc: 'Official Mojang Engine' },
   { id: 'Fabric', name: 'Fabric', logo: '🧶', desc: 'Lightweight Modding' },
@@ -27,10 +54,8 @@ const serverTypes = [
   { id: 'Forge', name: 'Forge', logo: '⚒️', desc: 'Heavy Modding Support' }
 ]
 
-/**
- * Compatibility & Version Logic
- */
-const generateVersions = (start, endSub, endMinor) => {
+// Version Utilities
+const generateVersions = () => {
   const versions = [];
   for (let i = 1; i >= 0; i--) versions.push(`26.${i}`);
   for (let i = 21; i >= 8; i--) {
@@ -41,7 +66,6 @@ const generateVersions = (start, endSub, endMinor) => {
 };
 
 const allVersions = generateVersions();
-
 const compatibilityMap = {
   Vanilla: allVersions,
   Paper: allVersions.filter(v => !v.startsWith('26')),
@@ -49,17 +73,8 @@ const compatibilityMap = {
   Forge: allVersions.filter(v => parseFloat(v.split('.')[1]) >= 12 && !v.startsWith('26'))
 };
 
-const availableVersions = computed(() => {
-  return compatibilityMap[selectedType.value] || [];
-});
-
-const isFormValid = computed(() => {
-  return (
-      newInstanceName.value.trim().length > 0 &&
-      availableVersions.value.includes(newInstanceVersion.value) &&
-      !isDeploying.value
-  );
-});
+const availableVersions = computed(() => compatibilityMap[selectedType.value] || []);
+const isFormValid = computed(() => newInstanceName.value.trim().length > 0 && !isDeploying.value);
 
 watch(selectedType, (newType) => {
   if (!compatibilityMap[newType].includes(newInstanceVersion.value)) {
@@ -67,56 +82,88 @@ watch(selectedType, (newType) => {
   }
 });
 
-// --- Log & Terminal State ---
-const logs = ref([])
-const logContainer = ref(null)
-let logStream = null
-let clusterStream = null
+const logs = computed(() => {
+  if (!activeInstance.value) return [];
+  return store.logs[activeInstance.value.id] || [];
+});
 
-// --- Player Analytics ---
+const logContainer = ref(null)
 const selectedPlayer = ref(null)
 
 /**
- * 1. Cluster Sync (SSE)
+ * 1. Persistent Log Stream Connection with History Sync
  */
-const fetchServers = async () => {
-  isLoading.value = true;
-  try{
-    // const res = window.electron.getServers();
-    instances.value = await window.electron.getServers();
-    console.log('servers.value', instances.value)
-
+const attachLogListener = async (id) => {
+  // Hydrate from sessionStorage if the memory store is empty
+  if (!store.logs[id] || store.logs[id].length === 0) {
+    store.logs[id] = loadFromHistory(id);
   }
-  catch(err){
-    console.error(err);
-  } finally {
-    isLoading.value = false;
+
+  if (!store.activeListeners.has(id)) {
+    window.electron.onLogUpdate(id, (line) => {
+      if (!store.logs[id]) store.logs[id] = [];
+      store.logs[id].push(line);
+
+      if (store.logs[id].length > 1000) store.logs[id].shift();
+
+      // Throttled persistence to session history
+      // We use a small timeout to avoid hammering storage on every log line
+      clearTimeout(window[`_sync_${id}`]);
+      window[`_sync_${id}`] = setTimeout(() => {
+        saveToHistory(id, store.logs[id]);
+      }, 500);
+
+      if (currentView.value === 'stats' && activeInstance.value?.id === id) {
+        scrollToBottom();
+      }
+    });
+    store.activeListeners.add(id);
+  }
+
+  try {
+    await window.electron.getLogs(id);
+  } catch (err) {
+    console.error("Backend log pipe error:", err);
   }
 };
 
 /**
- * 2. Log Streaming
+ * 2. Cluster Sync
  */
-const getServerLog = async (id) => {
-  // 1. Clear the current UI console
-  logs.value = [];
-
-  // 2. Set up the listener BEFORE starting the stream
-  // This matches the 'logs:${id}' channel we set up in Electron Main
-  window.electron.onLogUpdate(id, (line) => {
-    logs.value.push(line);
-
-    // Optional: Auto-scroll logic here
-    scrollToBottom();
-  });
-
+/**
+ * 2. Cluster Sync with State Preservation
+ */
+const fetchServers = async () => {
+  isLoading.value = true;
   try {
-    // 3. Trigger the Rust thread to start "taking" the stdout pipe
-    // This will return immediately (hence why it was undefined before)
-    await window.electron.getLogs(id);
-    console.log("Stream successfully initialized in Rust");
+    const freshData = await window.electron.getServers();
+
+    // Instead of instances.value = freshData, we map and preserve
+    instances.value = freshData.map(newServer => {
+      // Look for the existing version of this server in our current state
+      const existing = instances.value.find(s => s.id === newServer.id);
+
+      if (existing) {
+        // Update the existing object properties but keep the reference
+        // This prevents Vue from "flickering" or losing local UI states
+        return { ...existing, ...newServer };
+      }
+      return newServer;
+    });
+
+    // Re-attach listeners only for servers that aren't already being tracked
+    instances.value.forEach(server => {
+      if (server.status?.toUpperCase() === 'RUNNING') {
+        attachLogListener(server.id);
+      }
+    });
+
+    error.value = null;
   } catch (err) {
-    console.error("Failed to initialize stream:", err);
+    console.error("Fetch Error:", err);
+    error.value = "Failed to synchronize cluster state.";
+  } finally {
+    isLoading.value = false;
   }
 };
 
@@ -128,148 +175,105 @@ const scrollToBottom = async () => {
 };
 
 /**
- * 3. Navigation & Actions
+ * 3. UI Actions
  */
 const openServerStats = (server) => {
   activeInstance.value = server;
   currentView.value = "stats";
-  getServerLog(server.id);
+  attachLogListener(server.id);
+  scrollToBottom();
 };
 
 const closeStats = () => {
-  if (logStream) logStream.close();
   currentView.value = "grid";
   activeInstance.value = null;
   selectedPlayer.value = null;
 };
 
-
 const toggleStatus = async (server) => {
-  console.log("Button clicked for server:", server);
-
   if (!server) return;
-
-  // FIX: Support both snake_case (from Rust) and camelCase (if changed in JS)
-  const path = server.instance_path || server.instancePath; //
-
-  if (!path) {
-    console.error(`❌ Path missing for server: ${server.name || 'Unknown'}`);
-    // This logs because both were undefined
-    return;
-  }
+  const path = server.instance_path || server.instancePath;
 
   try {
     if (server.status?.toUpperCase() === 'RUNNING') {
       server.status = 'STOPPING';
       await window.electron.stopServer(server.id.toString());
       server.status = 'STOPPED';
+      // Clear history on hard stop if desired
+      store.logs[server.id] = [];
+      saveToHistory(server.id, []);
     } else {
       server.status = 'STARTING';
-
-      const payload = {
+      const result = await window.electron.startServer({
         id: server.id.toString(),
-        bin_dir: path.toString(), //
-        ram: parseInt(server.ram) || 3072 //
-      };
-
-      const result = await window.electron.startServer(payload);
+        bin_dir: path.toString(),
+        ram: parseInt(server.ram) || 3072
+      });
 
       if (result && !result.error) {
         server.status = 'RUNNING';
-        server.pid = result.pid;
+        attachLogListener(server.id);
       } else {
         server.status = 'ERROR';
-        console.error("Rust side error:", result?.error);
       }
     }
   } catch (err) {
-    console.error("IPC Bridge Error:", err);
     server.status = 'ERROR';
   }
 };
 
-/**
- * 4. Deploy & Delete Implementation
- */
 const deployInstance = async () => {
   if (!isFormValid.value) return;
   isDeploying.value = true;
-
-  // 1. Align the keys with your Rust Struct (id, ram_mb, provider, etc.)
-  const payload = {
-    id: crypto.randomUUID(), // Generate unique ID on the frontend
-    name: newInstanceName.value,
-    provider: selectedType.value, // Maps to your Rust 'Provider' enum
-    version: newInstanceVersion.value,
-    ram_mb: memoryAlloc.value,    // Ensure this matches your Rust 'ram_mb' field
-    port: 25565,                  // Default or from a ref
-    online_mode: isOnlineMode.value
-  };
-
   try {
-    // 2. Use the IPC Bridge instead of fetch
-    // This calls your 'createServer' handler in main.ts
-    const result = await window.electron.createServer(payload.id, payload.name, payload.provider, payload.version, payload.ram_mb, payload.port, payload.online_mode, payload.online_mode);
-
-    // 3. Handle the response reactively
+    const result = await window.electron.createServer(
+      crypto.randomUUID(), newInstanceName.value, selectedType.value,
+      newInstanceVersion.value, memoryAlloc.value, 25565, isOnlineMode.value, isOnlineMode.value
+    );
     if (result && !result.error) {
-      // Clear form and close modal/view
       isCreating.value = false;
       newInstanceName.value = '';
-
-      // Optional: Refresh the server list or navigate
-       await fetchServers();
-    } else {
-      console.error("Rust Backend Error:", result.error);
+      await fetchServers();
     }
-  } catch (err) {
-    // This catches IPC communication failures
-    console.error("Bridge communication failed:", err);
   } finally {
     isDeploying.value = false;
   }
 };
 
 const deleteInstance = async (id) => {
-  if (!confirm("Are you sure you want to permanently delete this instance? This cannot be undone.")) return;
-
+  if (!confirm("Permanently delete node?")) return;
   try {
+    delete store.logs[id];
+    store.activeListeners.delete(id);
+    saveToHistory(id, null); // Wipe from storage
+
     const response = await fetch('http://api.beacon.local/api/v1/servers/delete', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id: id })
+      body: JSON.stringify({ id })
     });
-
     if (response.ok) {
       activeMenuId.value = null;
       instances.value = instances.value.filter(s => s.id !== id);
     }
   } catch (err) {
-    console.error("Deletion failed:", err);
+    console.error(err);
   }
 };
 
-const toggleMenu = (id) => {
-  activeMenuId.value = activeMenuId.value === id ? null : id;
-};
-
-const closeMenus = () => {
-  activeMenuId.value = null;
-};
+const toggleMenu = (id) => activeMenuId.value = activeMenuId.value === id ? null : id;
+const closeMenus = () => activeMenuId.value = null;
 
 onMounted(async () => {
-  fetchServers();
-  window.addEventListener('click', closeMenus);
-  console.log(import.meta.env.VITE_API_URL)
+  if (instances.value.length > 0) {
+    isLoading.value = false;
+  }
 
-  // window.electron.onServerUpdate((data) => {
-  //   servers.value = data;
-  // });
+  await fetchServers();
+  window.addEventListener('click', closeMenus);
 });
 
 onUnmounted(() => {
-  if (clusterStream) clusterStream.close();
-  if (logStream) logStream.close();
   window.removeEventListener('click', closeMenus);
 });
 </script>
@@ -286,10 +290,10 @@ onUnmounted(() => {
           <div class="input-stack">
             <label>Node Identity</label>
             <input
-                v-model="newInstanceName"
-                class="fancy-input"
-                placeholder="e.g. survival-hub-01"
-                autofocus
+              v-model="newInstanceName"
+              class="fancy-input"
+              placeholder="e.g. survival-hub-01"
+              autofocus
             />
           </div>
 
@@ -297,11 +301,11 @@ onUnmounted(() => {
             <label>Server Software</label>
             <div class="type-grid">
               <div
-                  v-for="type in serverTypes"
-                  :key="type.id"
-                  class="type-box"
-                  :class="{ active: selectedType === type.id }"
-                  @click="selectedType = type.id"
+                v-for="type in serverTypes"
+                :key="type.id"
+                class="type-box"
+                :class="{ active: selectedType === type.id }"
+                @click="selectedType = type.id"
               >
                 <div class="type-logo">{{ type.logo }}</div>
                 <div class="type-info">
@@ -341,9 +345,9 @@ onUnmounted(() => {
           <div class="modal-actions">
             <button class="btn-secondary" @click="isCreating = false">Cancel</button>
             <button
-                class="primary-btn sparkle-hover"
-                :disabled="!isFormValid"
-                @click="deployInstance"
+              class="primary-btn sparkle-hover"
+              :disabled="!isFormValid"
+              @click="deployInstance"
             >
               {{ isDeploying ? 'Provisioning...' : 'Start Deployment' }}
             </button>
@@ -368,11 +372,11 @@ onUnmounted(() => {
 
       <div v-else class="server-grid">
         <div
-            v-for="server in instances"
-            :key="server.id"
-            class="card server-card"
-            :class="server.status?.toLowerCase()"
-            @click="openServerStats(server)"
+          v-for="server in instances"
+          :key="server.id"
+          class="card server-card"
+          :class="server.status?.toLowerCase()"
+          @click="openServerStats(server)"
         >
           <div class="card-inner">
             <div class="card-head">
@@ -461,10 +465,10 @@ onUnmounted(() => {
             <span class="section-label">Connected Users ({{ activeInstance?.players?.length || 0 }})</span>
             <div class="player-list">
               <div
-                  v-for="player in activeInstance?.players"
-                  :key="player.uuid"
-                  class="player-row"
-                  @click="selectedPlayer = player"
+                v-for="player in activeInstance?.players"
+                :key="player.uuid"
+                class="player-row"
+                @click="selectedPlayer = player"
               >
                 <div class="player-avatar">{{ player.name.charAt(0).toUpperCase() }}</div>
                 <div class="player-meta">
@@ -511,14 +515,6 @@ onUnmounted(() => {
 
 
 <style scoped>
-/* Dashboard Shell */
-
-.showing-swiftly{
-  background-color: #fff;
-  color: black;
-}
-
-
 .dashboard-container { padding: 40px; max-width: 1400px; margin: 0 auto; color: #1d1d1f; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; min-height: 100vh; }
 .dashboard-header { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 40px; flex-shrink: 0; }
 h1 { font-size: 2.5rem; font-weight: 900; letter-spacing: -1.5px; margin: 0; }
@@ -526,10 +522,8 @@ h1 { font-size: 2.5rem; font-weight: 900; letter-spacing: -1.5px; margin: 0; }
 .title-section span { color: #0071e3; font-weight: 700; }
 .active-node { color: #32d74b !important; }
 
-/* Grid Layout */
 .server-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(360px, 1fr)); gap: 24px; }
 
-/* Context Menu / Dots */
 .context-container { position: relative; }
 .btn-dots {
   background: none; border: none; font-size: 1.2rem; color: #86868b;
@@ -549,37 +543,23 @@ h1 { font-size: 2.5rem; font-weight: 900; letter-spacing: -1.5px; margin: 0; }
 .menu-item.delete { color: #ff3b30; }
 .menu-item.delete:hover { background: #fff1f0; }
 
-/* Card Aesthetics */
 .card {
-  /* 1. Make it more transparent */
   background: rgba(255, 255, 255, 0.05);
-
-  /* 2. Intense blur for the "liquid" feel */
   backdrop-filter: blur(25px) saturate(160%);
   -webkit-backdrop-filter: blur(25px) saturate(160%);
-
-  /* 3. The "Glass Edge" - subtle side borders, bright top border */
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-top: 1px solid rgba(255, 255, 255, 0.4);
   border-left: 1px solid rgba(255, 255, 255, 0.2);
-
-  /* 4. Soft rounded look */
   border-radius: 30px;
   padding: 30px;
-
-  /* 5. Deep Shadow + Inner Glow (Liquid Depth) */
-  box-shadow:
-    0 20px 40px rgba(0, 0, 0, 0.3),            /* Deep shadow */
-    inset 0 0 15px rgba(255, 255, 255, 0.05); /* Soft inner glow */
-
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3), inset 0 0 15px rgba(255, 255, 255, 0.05);
   transition: all 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
   cursor: pointer;
-  overflow: hidden; /* Clips the shine */
+  overflow: hidden;
   position: relative;
 }
 .card:hover { transform: translateY(-8px); box-shadow: 0 30px 60px rgba(0,0,0,0.06); }
 
-/* Card Content Details */
 .card-head { display: flex; justify-content: space-between; align-items: center; position: relative; }
 .status-pill {
   display: flex; align-items: center; gap: 8px; font-size: 0.75rem; font-weight: 800;
@@ -609,22 +589,18 @@ h1 { font-size: 2.5rem; font-weight: 900; letter-spacing: -1.5px; margin: 0; }
 .btn-action.running, .btn-action.online { background: #ff3b30; color: white; }
 .btn-secondary { background: #f5f5f7; border: none; font-weight: 700; border-radius: 14px; cursor: pointer; padding: 12px; }
 
-/* Create Card Utility */
 .create-card { display: flex; flex-direction: column; align-items: center; justify-content: center; border: 2px dashed #d2d2d7; background: transparent; }
 .plus-icon { font-size: 2rem; color: #d2d2d7; margin-bottom: 10px; }
 .create-text { text-align: center; }
 .create-text h3 { margin: 0; font-size: 1.1rem; }
 .create-text p { font-size: 0.8rem; color: #86868b; }
 
-/* --- Deploy Modal Styles --- */
 .modal-overlay {
   position: fixed; inset: 0; background: rgba(16, 16, 16, 0.38); backdrop-filter: blur(20px);
   display: flex; align-items: center; justify-content: center; z-index: 1000;
 }
 
-.deploy-instance{
-  color: #ffffff;
-}
+.deploy-instance{ color: #ffffff; }
 
 .modal-glass {
   background: rgba(25, 28, 32, 0.51); padding: 40px; border-radius: 40px; width: 100%; max-width: 600px;
@@ -639,7 +615,6 @@ h1 { font-size: 2.5rem; font-weight: 900; letter-spacing: -1.5px; margin: 0; }
 .form-row { display: flex; gap: 15px; }
 .form-row .half { flex: 1; }
 
-/* Type Grid Implementation */
 .type-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-top: 5px; }
 .type-box {
   display: flex; align-items: center; gap: 12px; padding: 12px; background: rgba(9, 8, 8, 0.17);
@@ -651,7 +626,6 @@ h1 { font-size: 2.5rem; font-weight: 900; letter-spacing: -1.5px; margin: 0; }
 .type-name { font-weight: 800; font-size: 0.9rem; color: #fffcfc; }
 .type-desc { font-size: 0.7rem; color: #86868b; font-weight: 500; }
 
-/* Toggle Switch Styling */
 .toggle-stack {
   display: flex; justify-content: space-between; align-items: center;
   background: rgba(23, 22, 22, 0.16); padding: 15px 20px; border-radius: 20px; cursor: pointer; margin-top: 10px;
@@ -671,18 +645,13 @@ h1 { font-size: 2.5rem; font-weight: 900; letter-spacing: -1.5px; margin: 0; }
 
 .modal-actions { display: flex; gap: 12px; justify-content: flex-end; margin-top: 30px; }
 
-/* --- Stats View Improved Scaling --- */
 .stats-view-container { display: flex; flex-direction: column; height: 100%; }
 .stats-layout { display: grid; grid-template-columns: 1fr 320px; gap: 30px; flex-grow: 1; min-height: 0; }
-.terminal-column {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
+.terminal-column { display: flex; flex-direction: column; gap: 12px; }
 
 .log-terminal {
   background: #1d1d1f; border-radius: 24px; padding: 25px;
-  height: calc(100vh - 250px); /* Dynamic scaling based on viewport */
+  height: calc(100vh - 250px);
   overflow-y: auto; overflow-x: hidden;
   color: #32d74b; font-family: 'JetBrains Mono', monospace; font-size: 0.85rem;
   border: 1px solid #30363d; box-shadow: inset 0 0 20px rgba(0,0,0,0.5);
@@ -696,7 +665,7 @@ h1 { font-size: 2.5rem; font-weight: 900; letter-spacing: -1.5px; margin: 0; }
 .sticky-sidebar-content { position: sticky; top: 20px; display: flex; flex-direction: column; gap: 20px; }
 
 .section-label {
-  font-family: 'JetBrains Mono', monospace; /* Or any clean mono font */
+  font-family: 'JetBrains Mono', monospace;
   font-size: 0.75rem;
   text-transform: uppercase;
   letter-spacing: 1.5px;
@@ -704,7 +673,6 @@ h1 { font-size: 2.5rem; font-weight: 900; letter-spacing: -1.5px; margin: 0; }
   padding-left: 10px;
 }
 
-/* Player List Styling */
 .player-list { display: flex; flex-direction: column; gap: 12px; max-height: 400px; overflow-y: auto; padding-right: 5px; }
 .player-row {
   display: flex; align-items: center; gap: 15px; padding: 15px; background: white;
@@ -715,7 +683,6 @@ h1 { font-size: 2.5rem; font-weight: 900; letter-spacing: -1.5px; margin: 0; }
 .player-name { display: block; font-weight: 700; font-size: 0.9rem; }
 .player-ping { font-size: 0.7rem; color: #86868b; }
 
-/* Player Detail Card */
 .player-detail-card {
   background: white; padding: 20px; border-radius: 24px;
   box-shadow: 0 20px 40px rgba(0,0,0,0.05); border: 1px solid #f5f5f7;
@@ -728,7 +695,6 @@ h1 { font-size: 2.5rem; font-weight: 900; letter-spacing: -1.5px; margin: 0; }
 .xp-row { margin-top: 5px; }
 .xp-lv { font-weight: 800; color: #32d74b; font-size: 0.8rem; }
 
-/* Transitions & Helpers */
 .pop-enter-active { transition: all 0.3s cubic-bezier(0.165, 0.84, 0.44, 1); }
 .pop-enter-from { opacity: 0; transform: scale(0.95); }
 .status-msg { padding: 60px; text-align: center; color: #86868b; font-weight: 700; }

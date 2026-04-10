@@ -4,6 +4,7 @@ import { fileURLToPath } from 'url';
 import { createRequire } from 'module';
 import mdns from 'multicast-dns'
 const dns = mdns();
+import { session } from 'electron';
 
 // 1. Manually define __dirname for ES Module scope
 // In ESM, __dirname and __filename are not globally available
@@ -100,7 +101,7 @@ function registerIpcHandlers() {
     // We extract the fields from 'data' and pass them individually
 
     const onlineMode = data.online_mode === true || data.online_mode === 'true';
-    const data_dir = app.getPath('userData');
+    const data_dir = app.getPath('userData').toString();
 
 
     return await rust.createServer(
@@ -142,8 +143,9 @@ function registerIpcHandlers() {
 
 
   ipcMain.handle('getServers', async () => {
+    const data_dir = app.getPath('userData').toString();
     try{
-      return await rust.getServers();
+      return await rust.getServers(data_dir);
     }
     catch (e){
       console.error("Rust error:", e);
@@ -263,6 +265,7 @@ function createWindow(): void {
 
 
   mainWindow.on('closed', () => {
+    session.defaultSession.clearStorageData();
     // If this is the only window, quitting will trigger 'before-quit' anyway
     mainWindow = null;
   })
@@ -287,6 +290,7 @@ app.whenReady().then(() => {
 app.on('window-all-closed', () => {
   // On macOS, apps stay open even without windows.
   // If you want containers to die when the window closes, keep this here.
+  session.defaultSession.clearStorageData();
   if (process.platform !== 'darwin') {
     app.quit();
   }
