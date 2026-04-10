@@ -41,7 +41,7 @@ fn get_cloudflared_path(resource_dir: &Path) -> Option<PathBuf> {
 }
 
 
-pub async fn get_bin(data_dir: String) -> napi::Result<String> {
+pub async fn get_bin(data_dir: PathBuf) -> napi::Result<String> {
     let data_path = std::path::PathBuf::from(data_dir);
     let resource_dir = get_resource_path()?;
 
@@ -107,7 +107,7 @@ pub async fn start_cloudflared(port: u32, data_dir: String) -> napi::Result<clou
     let resource_dir = std::path::PathBuf::from(data_dir);
 
     // FIX 1: Use ok_or_else for Option -> Result conversion
-    let cloudflared_bin = get_cloudflared_path(&resource_dir).unwrap();
+    let cloudflared_bin = get_bin(resource_dir).await?;
 
     // FIX 2: spawn() returns a Result. Map the error THEN use '?'
     let mut child = Command::new(&cloudflared_bin)
