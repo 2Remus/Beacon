@@ -10,6 +10,7 @@ use lazy_static::lazy_static;
 use crate::get_resource_path;
 use crate::models::Cloudflared::cloudflaredRespone;
 use glob::glob;
+use log::Level::Error;
 
 lazy_static! {
     static ref ACTIVE_TUNNEL: Mutex<Option<Child>> = Mutex::new(None);
@@ -40,52 +41,76 @@ fn get_cloudflared_path(resource_dir: &Path) -> Option<PathBuf> {
 }
 
 
+pub async fn get_bin(data_dir: String) -> napi::Result<String> {
+    let data_path = std::path::PathBuf::from(data_dir);
+    let resource_dir = get_resource_path()?;
+
+    if let Some(path) = get_cloudflared_path(&resource_dir) {
+        return Ok(path.to_string_lossy().into_owned());
+    }
+
+    let bin_name = if cfg!(windows) { "cloudflared.exe" } else { "cloudflared" };
+    let target_path = data_path.join("bin").join(bin_name);
+
+    // Ensure the bin directory exists
+    if let Some(parent) = target_path.parent() {
+        std::fs::create_dir_all(parent).map_err(|e| napi::Error::from_reason(e.to_string()))?;
+    }
+
+    let client = reqwest::Client::new();
+
+    // 3. Fetch Release Info
+    let release_info = client
+        .get("https://api.github.com/repos/cloudflare/cloudflared/releases/latest")
+        .header("User-Agent", "Beacon-App")
+        .send()
+        .await
+        .map_err(|e| napi::Error::from_reason(e.to_string()))?
+        .json::<serde_json::Value>()
+        .await
+        .map_err(|e| napi::Error::from_reason(e.to_string()))?;
+
+    // 4. Determine URL (Simplified for brevity)
+    let download_url = if cfg!(windows) {
+        "https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-windows-amd64.exe"
+    } else {
+        "https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64"
+    };
+
+    // 5. Perform the actual download
+    let response = client.get(download_url)
+        .send()
+        .await
+        .map_err(|e| napi::Error::from_reason(e.to_string()))?;
+
+    let content = response.bytes().await
+        .map_err(|e| napi::Error::from_reason(e.to_string()))?;
+
+    std::fs::write(&target_path, &content)
+        .map_err(|e| napi::Error::from_reason(e.to_string()))?;
+
+    // 6. On Unix, we MUST make the file executable
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        let mut perms = std::fs::metadata(&target_path).unwrap().permissions();
+        perms.set_mode(0o755);
+        std::fs::set_permissions(&target_path, perms).unwrap();
+    }
+
+    Ok(target_path.to_string_lossy().into_owned())
+}
 
 
 #[napi]
-pub async fn  start_cloudflared(port: u32) -> napi::Result<cloudflaredRespone>{
+pub async fn start_cloudflared(port: u32, data_dir: String) -> napi::Result<cloudflaredRespone> {
+    let resource_dir = std::path::PathBuf::from(data_dir);
 
-    let resource_dir = get_resource_path()?;
-    let cloudflared_bin_option: Option<PathBuf> = get_cloudflared_path(&resource_dir);
+    // FIX 1: Use ok_or_else for Option -> Result conversion
+    let cloudflared_bin = get_cloudflared_path(&resource_dir)
+        .ok_or_else(|| napi::Error::from_reason("Cloudflared binary not found"))?;
 
-    // 2. Safely unwrap it or return an error to JS
-    let cloudflared_bin = cloudflared_bin_option.ok_or_else(|| {
-        napi::Error::from_reason("Cloudflared binary not found in bin directory")
-    })?;
-
-    if !cloudflared_bin.exists() {
-        //download cloudflared
-
-        let client = reqwest::Client::new();
-
-        // GitHub API for the latest release metadata
-        let release_info = client
-            .get("https://api.github.com/repos/cloudflare/cloudflared/releases/latest")
-            .header("User-Agent", "Beacon-App")
-            .send()
-            .await
-            .map_err(|e| napi::Error::from_reason(e.to_string()))?
-            .json::<serde_json::Value>()
-            .await
-            .map_err(|e| napi::Error::from_reason(e.to_string()))?;
-
-        let version = release_info["tag_name"].as_str().unwrap_or("unknown");
-
-        // Here is where you actually use the platform-specific logic
-        let download_url = if cfg!(windows) {
-            "https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-windows-amd64.exe"
-        } else if cfg!(target_os = "macos") {
-            // You'll need to detect if it's ARM64 (M1/M2/M3) or Intel
-            if cfg!(target_arch = "aarch64") {
-                "https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-darwin-arm64.tgz"
-            } else {
-                "https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-darwin-amd64.tgz"
-            }
-        } else {
-            "https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64"
-        };
-    }
-
+    // FIX 2: spawn() returns a Result. Map the error THEN use '?'
     let mut child = Command::new(&cloudflared_bin)
         .args(&[
             "tunnel",
@@ -96,37 +121,30 @@ pub async fn  start_cloudflared(port: u32) -> napi::Result<cloudflaredRespone>{
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())
         .spawn()
-        .map_err(|e| Error::from_reason(format!("Failed to launch: {}", e)))?;
+        .map_err(|e| napi::Error::from_reason(e.to_string()))?;
 
+    // FIX 3: .stderr.take() returns an Option. Use ok_or_else.
+    let stderr = child.stderr.take()
+        .ok_or_else(|| napi::Error::from_reason("Failed to capture stderr pipe"))?;
 
-    let stderr = child.stderr.take().ok_or_else(|| Error::from_reason("Failed to capture stderr"))?;
     let reader = BufReader::new(stderr);
-
     let mut detected_url = String::from("pending");
 
-    // Scan lines until we find the URL
     for line in reader.lines() {
-        // Explicitly annotate 'l' as a String
         if let Ok(l) = line {
-            let l: String = l; // This "shadows" the variable with an explicit type
-
-            println!("{}", l);
-
             if l.contains(".trycloudflare.com") {
-                // Help the compiler with the split/last operations as well
-                if let Some(url) = l.split("at ").collect::<Vec<&str>>().last() {
-                    detected_url = url.trim().to_string();
+                if let Some(url) = l.split_whitespace().find(|&s| s.contains(".trycloudflare.com")) {
+                    detected_url = url.trim().replace("url=", "").to_string();
                     break;
                 }
             }
-
             if l.contains("failed to request quick Tunnel") {
-                return Err(Error::from_reason("Cloudflare timeout or connection error"));
+                let _ = child.kill();
+                return Err(napi::Error::from_reason("Cloudflare tunnel request failed"));
             }
         }
     }
 
-    // Store the child process so it doesn't get dropped (killing the tunnel)
     let mut lock = ACTIVE_TUNNEL.lock().unwrap();
     *lock = Some(child);
 
@@ -159,38 +177,17 @@ pub fn stop_cloudflared(env: Env) -> napi::Result<(String)> {
 #[napi]
 pub fn client_connect(url: String) -> napi::Result<String> {
     let resource_dir = get_resource_path()?;
-    let cloudflared_bin = get_cloudflared_path(&resource_dir);
-
-    // ... (Your binary existence check here) ...
+    let cloudflared_bin = get_cloudflared_path(&resource_dir).unwrap();
 
     let mut child = Command::new(&cloudflared_bin)
-        .args(&[
-            "tunnel",
-            "--url",
-            &url,
-            "--no-autoupdate",
-        ])
-        .stdin(Stdio::piped())
+        .args(&["tunnel", "--url", &url, "--no-autoupdate"])
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())
-        .spawn()
-        .map_err(|e| Error::from_reason(format!("Failed to launch: {}", e)))?;
+        .spawn();
 
-    let connection_id = format!("tunnel-{}", url);
+    // Store in the same Mutex (Note: this will replace any server tunnel currently running)
+    let mut registry = ACTIVE_TUNNEL.lock().unwrap();
+    *registry = Some(child?);
 
-    // --- MUTEX INSERTION ---
-    {
-        // 1. Acquire the lock. .map_err converts a poisoned lock error into a JS error.
-        let mut registry = ACTIVE_TUNNEL.lock().map_err(|_| {
-            Error::from_reason("Failed to lock ACTIVE_TUNNEL")
-        })?;
-
-        // Instead of .insert(), just wrap the child in Some()
-        *registry = Some(child);
-
-        // The lock is automatically released here when 'registry' goes out of scope
-    }
-
-    println!("[Rust] Started tunnel for: {}", url);
-    Ok(connection_id)
+    Ok(format!("tunnel-{}", url))
 }
