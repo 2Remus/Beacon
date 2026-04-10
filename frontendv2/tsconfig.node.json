@@ -6,11 +6,13 @@
     "module": "NodeNext",
     "moduleResolution": "NodeNext",
     "allowSyntheticDefaultImports": true,
+    "allowImportingTsExtensions": true,
     "skipLibCheck": true,
     "types": ["node"]
   },
   "include": [
     "src/main/**/*",
+    "cloudflare.ts",
     "electron-main.ts",
     "electron.vite.config.ts",
     "vite.config.*",

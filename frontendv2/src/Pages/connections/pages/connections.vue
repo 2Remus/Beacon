@@ -31,7 +31,7 @@ const toggleTunnel = async () => {
 
       tunnelStatus.value = res.status; // "RUNNING"
       publicUrl.value = cleanUrl(res.url);
-      connections.value = res.connections || [];
+      //connections.value = res.connections || [];
       errorMsg.value = '';
     } catch (err) {
       console.error('Tunnel Error:', err);

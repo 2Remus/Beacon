@@ -2,6 +2,8 @@ import { app, BrowserWindow, ipcMain } from 'electron';
 import * as path from 'path';
 import { fileURLToPath } from 'url';
 import { createRequire } from 'module';
+import mdns from 'multicast-dns'
+const dns = mdns();
 
 // 1. Manually define __dirname for ES Module scope
 // In ESM, __dirname and __filename are not globally available
@@ -19,6 +21,28 @@ const requireNative = createRequire(import.meta.url);
 let rust: any;
 
 const isProd = app.isPackaged;
+
+
+export function enableBeaconLocalName() {
+  dns.on('query', (query) => {
+    query.questions.forEach((q: any) => {
+      // We respond to both "beacon.local" and "beacon" (for Windows LLMNR fallback)
+      if (q.name === 'beacon.local' || q.name === 'beacon') {
+        dns.respond({
+          answers: [{
+            name: q.name,
+            type: 'A',
+            ttl: 300,
+            data: '127.0.0.1' // Points back to the local bridge
+          }]
+        });
+      }
+    });
+  });
+}
+
+
+
 
 // Helper to get the correct path regardless of dev/prod
 const getBinPath = () => {
@@ -166,7 +190,7 @@ function createWindow(): void {
     }
   });
 
-  splashWindow.loadFile(path.join(__dirname, '../splash.html'));
+  splashWindow.loadFile(path.join(__dirname, './splash.html'));
   splashWindow.center();
 
   mainWindow = new BrowserWindow({
@@ -193,6 +217,11 @@ function createWindow(): void {
       console.error("Failed to kill containers:", err);
     }
   };
+
+
+
+
+
 
   app.on('before-quit', () => {
     console.log("Shutting down... calling Rust cleanup.");
@@ -240,7 +269,7 @@ function createWindow(): void {
 // Electron lifecycle management
 app.whenReady().then(() => {
 
-
+  enableBeaconLocalName()
   registerIpcHandlers();
   createWindow();
 
