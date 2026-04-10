@@ -20,68 +20,8 @@
 * 🔐 **Enterprise SSO:** Identity management powered by Keycloak.
 
 ---
+I SHOULD REALLY PROVIDE DEVELOPMENT INFO 
 
-## 🏗️ Architecture
-
-Beacon uses a reverse-proxy model to manage internal services and provide a seamless Single Sign-On (SSO) experience.
-
-    [ User Browser ]
-           |
-    [ Nginx Proxy ] 
-           |
-    ---------------------------------------------------
-    |                 |                               |
-    [ Vue Dashboard ] [ Rust Control Plane ] [ Keycloak SSO ]
-    (app.beacon.local) (api.beacon.local)    (sso.beacon.local)
-                      |                               |
-                [ Docker Engine ]             [ Postgres DB ]
-                      |
-                -----------------------
-                |                     |
-          [ MC: Survival ]      [ MC: Creative ]
-
----
-
-## 🚀 Quick Start (End-Users)
-
-### 1. Host Configuration
-Add the following to your system hosts file to enable local domain routing:
-* Linux/macOS: /etc/hosts
-* Windows: C:\Windows\System32\drivers\etc\hosts
-
-    127.0.0.1 app.beacon.local api.beacon.local sso.beacon.local
-
-### 2. Configure Environment
-Download the release, enter the directory, and initialize your configuration:
-
-    cp .env.example .env
-
-Edit .env and set secure values for POSTGRES_PASSWORD, KEYCLOAK_ADMIN_PASSWORD, and BEACON_SECRET_KEY.
-
-### 3. Deployment
-Run the stack using Docker Compose:
-
-    docker-compose up -d
-
-* Dashboard: http://app.beacon.local
-* API Docs: http://api.beacon.local/docs
-* SSO Admin: http://sso.beacon.local
-
----
-
-## 🛠️ Development & Contributing
-
-### Project Structure
-| Directory | Description |
-| :--- | :--- |
-| /backend | Rust Control Plane (Axum, Bollard, SQLx) |
-| /frontend | Vue 3 Dashboard (Vite, Tailwind, Pinia) |
-| /nginx | Reverse proxy configuration |
-| /keycloak | Realm exports & custom themes |
-
-### Local Setup
-1. Backend: Ensure Postgres is running, then: cd backend && cargo watch -x run
-2. Frontend: cd frontend && npm install && npm run dev
 
 ### Contribution Workflow
 1. Fork the Project.
