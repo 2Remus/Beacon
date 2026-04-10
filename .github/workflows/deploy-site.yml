@@ -1,7 +1,7 @@
 name: Deploy Landing Page
 on:
   push:
-    branches: [ 2reumus-patch-1 ]
+    branches: [ 2remus-patch-1 ]
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
