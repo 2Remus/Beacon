@@ -76,7 +76,7 @@ pub async fn get_servers() -> napi::Result<Vec<MinecraftServer>> {
     // to poll until the file is ready or just read it once.
 
     if !db_path.exists() {
-        return Err(Error::from_reason("Database not found").into());
+        fs::create_dir_all(&db_path).map_err(|e| napi::Error::from_reason(e.to_string()))?;
     }
 
     // Instead of a loop that disappears, we just perform the read.

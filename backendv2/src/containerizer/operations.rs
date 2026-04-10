@@ -30,6 +30,10 @@ lazy_static! {
 pub fn create_container_env(config: ContainerConfig) -> napi::Result<PathBuf> {
     let root = get_resource_path()?.join("containers").join(&config.server_id);
     let jar_source = Path::new(&config.jar_path);
+    
+    if !root.exists() {
+        fs::create_dir_all(&root)?;
+    }
 
     let dirs = ["world", "logs", "plugins", "mods", "config"];
     for dir in &dirs {

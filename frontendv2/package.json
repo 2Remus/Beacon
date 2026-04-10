@@ -33,25 +33,12 @@
     ],
     "extraResources": [
       {
-        "from": "bin/containers",
-        "to": "containers"
-      },
-      {
         "from": "bin/index.darwin-arm64.node",
         "to": "bin/index.darwin-arm64.node"
       },
       {
         "from": "bin/cloudflared",
         "to": "bin/cloudflared"
-      },
-      {
-        "from": "bin/db.json",
-        "to": "db.json"
-      },
-
-      {
-        "from" : "bin/containers",
-        "to" : "containers"
       }
     ],
     "mac": {
