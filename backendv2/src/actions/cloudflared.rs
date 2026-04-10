@@ -9,6 +9,7 @@ use std::sync::Mutex;
 use lazy_static::lazy_static;
 use crate::get_resource_path;
 use crate::models::Cloudflared::cloudflaredRespone;
+use glob::glob;
 
 lazy_static! {
     static ref ACTIVE_TUNNEL: Mutex<Option<Child>> = Mutex::new(None);
@@ -16,13 +17,26 @@ lazy_static! {
 
 
 /// Helper to locate the binary based on OS
-fn get_cloudflared_path(resource_dir: &Path) -> PathBuf {
-    if cfg!(windows) {
-        resource_dir.join("bin").join("cloudflared.exe")
-    } else {
-        // MacOS/Linux
-        resource_dir.join("bin").join("cloudflared")
+fn get_cloudflared_path(resource_dir: &Path) -> Option<PathBuf> {
+    let pattern = if cfg!(windows) {
+        "bin/cloudflared*.exe"
     }
+    else{
+        "bin/cloudflared"
+    };
+
+    let full_pattern = resource_dir.join(pattern);
+    let pattern_str = full_pattern.to_str()?;
+
+    if let Ok(paths) = glob(pattern_str) {
+        for entry in paths {
+            if let Ok(path) = entry {
+                return Some(path)
+            }
+        }
+    }
+
+    None
 }
 
 
@@ -35,7 +49,36 @@ pub async fn  start_cloudflared(port: u32) -> napi::Result<cloudflaredRespone>{
     let cloudflared_bin = get_cloudflared_path(&resource_dir);
 
     if !cloudflared_bin.exists() {
-        return Err(Error::from_reason(format!("cloudflared {} is not exist", cloudflared_bin.display())));
+        //download cloudflared
+
+        let client = reqwest::Client::new();
+
+        // GitHub API for the latest release metadata
+        let release_info = client
+            .get("https://api.github.com/repos/cloudflare/cloudflared/releases/latest")
+            .header("User-Agent", "Beacon-App")
+            .send()
+            .await
+            .map_err(|e| napi::Error::from_reason(e.to_string()))?
+            .json::<serde_json::Value>()
+            .await
+            .map_err(|e| napi::Error::from_reason(e.to_string()))?;
+
+        let version = release_info["tag_name"].as_str().unwrap_or("unknown");
+
+        // Here is where you actually use the platform-specific logic
+        let download_url = if cfg!(windows) {
+            "https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-windows-amd64.exe"
+        } else if cfg!(target_os = "macos") {
+            // You'll need to detect if it's ARM64 (M1/M2/M3) or Intel
+            if cfg!(target_arch = "aarch64") {
+                "https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-darwin-arm64.tgz"
+            } else {
+                "https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-darwin-amd64.tgz"
+            }
+        } else {
+            "https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64"
+        };
     }
 
     let mut child = Command::new(&cloudflared_bin)
