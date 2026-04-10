@@ -174,9 +174,9 @@ pub fn stop_cloudflared(env: Env) -> napi::Result<(String)> {
 
 
 #[napi]
-pub fn client_connect(url: String) -> napi::Result<String> {
+pub async fn client_connect(url: String) -> napi::Result<String> {
     let resource_dir = get_resource_path()?;
-    let cloudflared_bin = get_cloudflared_path(&resource_dir).unwrap();
+    let cloudflared_bin = get_bin(resource_dir).await?;
 
     let mut child = Command::new(&cloudflared_bin)
         .args(&["tunnel", "--url", &url, "--no-autoupdate"])
