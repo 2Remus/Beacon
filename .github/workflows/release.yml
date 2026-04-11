@@ -43,31 +43,13 @@ jobs:
         with:
           targets: ${{ matrix.target }}
 
-      - name: Install Build Dependencies (Windows)
-        if: matrix.os == 'windows-latest'
-        shell: pwsh
-        run: |
-          # 1. Retry logic for NASM (CMake is already pre-installed on GitHub Runners)
-          $retries = 0
-          while ($retries -lt 3) {
-            try {
-              choco install nasm -y --no-progress --execution-timeout=600
-              break
-            } catch {
-              $retries++
-              Write-Host "Choco failed, retrying ($retries/3)..."
-              Start-Sleep -Seconds 10
-            }
-          }
+     - name: Setup CMake
+        uses: jwlawson/actions-setup-cmake@v2
+        with:
+          cmake-version: 'latest'
 
-          # 2. Add NASM to Path (Choco usually installs to this location)
-          $nasmPath = "C:\Program Files\NASM"
-          if (Test-Path $nasmPath) {
-            echo "$nasmPath" >> $env:GITHUB_PATH
-          } else {
-            # Fallback check for alternative choco install path
-            echo "C:\tools\nasm" >> $env:GITHUB_PATH
-          }
+      - name: Setup NASM
+        uses: ilammy/setup-nasm@v1
 
       - name: Verify Tools
         if: matrix.os == 'windows-latest'
