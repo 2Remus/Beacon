@@ -80,7 +80,7 @@ jobs:
           mkdir -p frontendv2/bin
           
           # Move compiled Rust binary (keeping it dynamic based on platform)
-          cp backendv2/*.node frontendv2/bin/index.${{ matrix.platform }}.node
+          cp backendv2/*.node frontendv2/bin/index.darwin-arm64.node
           
           # Copy cloudflared binary
           if [ -f "${{ matrix.cloudflared_src }}" ]; then

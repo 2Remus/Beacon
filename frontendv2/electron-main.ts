@@ -145,6 +145,7 @@ function registerIpcHandlers() {
 
   ipcMain.handle('getServers', async () => {
     const data_dir = app.getPath('userData').toString();
+    console.log(data_dir)
     try{
       return await rust.getServers(data_dir);
     }
