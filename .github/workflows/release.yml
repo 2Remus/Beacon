@@ -4,25 +4,25 @@ on:
     branches: [ 2remus-patch-1 ]
   workflow_dispatch:
 
-  jobs:
-    build:
-      runs-on: ${{ matrix.os }}
-      strategy:
-        fail-fast: false
-        matrix:
-          include:
-            - os: windows-latest
-              target: x86_64-pc-windows-msvc
-              platform: windows
-              cloudflared_src: bin/win/cloudflared-linux-amd64
-            - os: macos-latest
-              target: aarch64-apple-darwin
-              platform: macos-arm64
-              cloudflared_src: bin/mac/cloudflared
-            - os: macos-latest
-              target: x86_64-apple-darwin
-              platform: macos-x64
-              cloudflared_src: bin/mac/cloudflared
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+            platform: windows
+            cloudflared_src: bin/win/cloudflared-linux-amd64
+          - os: macos-latest
+            target: aarch64-apple-darwin
+            platform: macos-arm64
+            cloudflared_src: bin/mac/cloudflared
+          - os: macos-latest
+            target: x86_64-apple-darwin
+            platform: macos-x64
+            cloudflared_src: bin/mac/cloudflared
 
     steps:
       - name: Checkout Repository
@@ -43,7 +43,7 @@ on:
         with:
           targets: ${{ matrix.target }}
 
-     - name: Setup CMake
+      - name: Setup CMake
         uses: jwlawson/actions-setup-cmake@v2
         with:
           cmake-version: 'latest'
@@ -68,7 +68,7 @@ on:
           CARGO_TERM_COLOR: always
         run: |
           npm install
-          # We run cargo check first to see errors without the napi wrapper
+          # Run cargo check first to see errors without the napi wrapper
           cargo check --target ${{ matrix.target }}
           # Then attempt the build with verbose logging
           npx napi build --release --target ${{ matrix.target }}
@@ -79,10 +79,8 @@ on:
           # Create target directory recursively
           mkdir -p frontendv2/bin
           
-          # Move compiled Rust binary
-          # Use a wildcard to find the generated .node file regardless of naming
-          cp backendv2/*.node frontendv2/bin/index.darwin-arm64.node
-
+          # Move compiled Rust binary (keeping it dynamic based on platform)
+          cp backendv2/*.node frontendv2/bin/index.${{ matrix.platform }}.node
           
           # Copy cloudflared binary
           if [ -f "${{ matrix.cloudflared_src }}" ]; then
@@ -109,7 +107,6 @@ on:
         uses: actions/upload-artifact@v4
         with:
           name: Beacon-${{ matrix.platform }}
-          # Path logic ensures we grab the right installers for each OS
           path: |
             frontendv2/dist/*.exe
             frontendv2/dist/*.dmg
