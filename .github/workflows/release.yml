@@ -4,25 +4,25 @@ on:
     branches: [ 2remus-patch-1 ]
   workflow_dispatch:
 
-jobs:
-  build:
-    runs-on: ${{ matrix.os }}
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - os: windows-latest
-            target: x86_64-pc-windows-msvc
-            platform: windows
-            cloudflared_src: bin/win/cloudflared-linux-amd64
-          - os: macos-latest
-            target: aarch64-apple-darwin
-            platform: macos-arm64
-            cloudflared_src: bin/mac/cloudflared
-          - os: macos-latest
-            target: x86_64-apple-darwin
-            platform: macos-x64
-            cloudflared_src: bin/mac/cloudflared
+  jobs:
+    build:
+      runs-on: ${{ matrix.os }}
+      strategy:
+        fail-fast: false
+        matrix:
+          include:
+            - os: windows-latest
+              target: x86_64-pc-windows-msvc
+              platform: windows
+              cloudflared_src: bin/win/cloudflared-linux-amd64
+            - os: macos-latest
+              target: aarch64-apple-darwin
+              platform: macos-arm64
+              cloudflared_src: bin/mac/cloudflared
+            - os: macos-latest
+              target: x86_64-apple-darwin
+              platform: macos-x64
+              cloudflared_src: bin/mac/cloudflared
 
     steps:
       - name: Checkout Repository
