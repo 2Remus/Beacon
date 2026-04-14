@@ -80,6 +80,9 @@ pub fn create_container_env(config: ContainerConfig) -> napi::Result<PathBuf> {
     Ok(root)
 }
 
+
+
+
 #[napi]
 pub fn spawn_container(id: String, bin_dir: String, ram: u32) -> Result<SpawnResult> {
     let base_path = Path::new(&bin_dir);

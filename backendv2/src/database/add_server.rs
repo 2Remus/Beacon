@@ -7,26 +7,33 @@ use serde_json::Value;
 use crate::models::ServerStorage::{ServerRegistry, MinecraftServer};
 
 pub fn add_server(new_server: &MinecraftServer, path: PathBuf) -> napi::Result<()> {
-    // 1. Load existing servers as OWNED objects
-    let mut servers: Vec<MinecraftServer> = if path.exists() {
-        let content = fs::read_to_string(&path)
-            .map_err(|_| Error::from_reason("Failed to read DB"))?;
+    // 1. Read and Close immediately
+    let mut servers: Vec<MinecraftServer> = {
+        if path.exists() {
+            let content = fs::read_to_string(&path)
+                .map_err(|e| Error::from_reason(format!("Read conflict: {}", e)))?;
+            serde_json::from_str(&content).unwrap_or_default()
+        } else {
+            vec![]
+        }
+    }; // 'content' and file handle are dropped here
 
-        // Deserialize into actual data, not references
-        serde_json::from_str(&content).unwrap_or_else(|_| vec![])
-    } else {
-        vec![]
-    };
-
-    // 2. Clone the reference to turn it into an owned object for the Vec
+    // 2. Modify data
     servers.push(new_server.clone());
-
-    // 3. Write the full list back
     let json = serde_json::to_string_pretty(&servers)
-        .map_err(|_| Error::from_reason("Failed to serialize DB"))?;
+        .map_err(|_| Error::from_reason("Serialization failed"))?;
 
-    fs::write(path, json)
-        .map_err(|_| Error::from_reason("Failed to write DB file"))?;
+    // 3. Atomic Write (The Windows Hang-Fixer)
+    let temp_path = path.with_extension("tmp");
+
+    // Write to a temp file first
+    fs::write(&temp_path, json)
+        .map_err(|e| Error::from_reason(format!("Temp write blocked: {}", e)))?;
+
+    // Rename is atomic on Windows and will fail fast instead of hanging
+    // if the original file is still locked.
+    fs::rename(&temp_path, &path)
+        .map_err(|e| Error::from_reason(format!("File is busy/locked: {}", e)))?;
 
     Ok(())
 }
