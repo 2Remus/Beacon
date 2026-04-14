@@ -7,6 +7,11 @@
     <title>Beacon</title>
   </head>
   <body>
+  <div id = "toolButtons">
+    <div id ="closeBtn"><a data-text="✖"></a></div>
+    <div id="maxBtn"><a data-text="❐" ></a></div>
+    <div id="minBtn"><a data-text="─" ></a></div>
+  </div>
     <div id="app"></div>
     <script type="module" src="/src/main.ts"></script>
   </body>
@@ -20,5 +25,17 @@
         width: 100%;
         height: 100vh;
         overflow: hidden; /* Prevents double scrollbars */
+    }
+
+    #toolButtons{
+        display: none;
+    }
+
+    #toolButtons.is-windows{
+        display:flex;
+        position: absolute;
+        top: 0;
+        right: 0;
+        z-index: 100000;
     }
 </style>
