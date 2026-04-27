@@ -10,7 +10,7 @@ use reqwest::Client;
 use serde_json::Value;
 use crate::containerizer::operations::create_container_env;
 use crate::models::ServerStorage::MinecraftServer;
-
+use crate::get_resource_path;
 use crate::database::add_server::add_server;
 use crate::models::container::ContainerConfig;
 use crate::models::ServerStorage::Provider;
@@ -30,8 +30,9 @@ pub async fn create_server(
 ) -> napi::Result<String> {
 
     // 1. RESOLVE & DOWNLOAD (The Pull Step)
+    //
     // Pulls from cache or hits the API (Paper/Fabric/Vanilla)
-    let jar_path = ensure_jar_exists(&provider, &version).await?;
+    let jar_path = ensure_jar_exists(&provider, &version, data_dir.clone()).await?;
 
     // 2. BUILD CONFIG (The Environment Metadata)
     // We initialize fully here to avoid the "partially assigned" E0381 error.
@@ -46,7 +47,7 @@ pub async fn create_server(
 
     // 3. PROVISION (The Filesystem Layer)
     // Creates the /containers/id folder, symlinks the JAR, and writes server.properties
-    let container_path = create_container_env(container_config)?;
+    let container_path = create_container_env(container_config, data_dir.clone())?;
 
     // 4. REGISTER (The Persistence Layer)
     let new_server = MinecraftServer {
@@ -97,8 +98,8 @@ pub async fn get_servers(data_dir: String) -> napi::Result<Vec<MinecraftServer>>
 }
 
 
-async fn ensure_jar_exists(provider: &Provider, version: &str) -> napi::Result<PathBuf> {
-    let cache_dir = crate::get_resource_path()?.join("cache");
+async fn ensure_jar_exists(provider: &Provider, version: &str, path: String) -> napi::Result<PathBuf> {
+    let cache_dir = get_resource_path(path)?.join("cache");
 
     // Ensure the cache directory exists before we try to save files to it
     if !cache_dir.exists() {

@@ -27,8 +27,8 @@ lazy_static! {
 
 
 
-pub fn create_container_env(config: ContainerConfig) -> napi::Result<PathBuf> {
-    let root = get_resource_path()?.join("containers").join(&config.server_id);
+pub fn create_container_env(config: ContainerConfig, path: String) -> napi::Result<PathBuf> {
+    let root = get_resource_path(path)?.join("containers").join(&config.server_id);
     let jar_source = Path::new(&config.jar_path);
     
     if !root.exists() {
@@ -72,7 +72,8 @@ pub fn create_container_env(config: ContainerConfig) -> napi::Result<PathBuf> {
 
     // Create a start script helper for the JVM
     let jvm_args = format!(
-        "java -Xmx{}M -Xms{}M -jar server.jar nogui",
+        "java -Xmx{}M -Xms{}M -jar server.jar nogui", //for some reason opens a terminal on
+        //windows??
         config.ram_mb, config.ram_mb
     );
     fs::write(root.join("start.sh"), jvm_args)?;

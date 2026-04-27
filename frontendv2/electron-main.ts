@@ -90,12 +90,12 @@ function registerIpcHandlers() {
 
 
   ipcMain.handle('stopCloudflared', async () => {
-      try{
-        rust.stopCloudflared();
+    try {
+      rust.stopCloudflared();
 
-      }catch (e) {
-        console.error("Rust layer error: ", e)
-      }
+    } catch (e) {
+      console.error("Rust layer error: ", e)
+    }
   })
 
   ipcMain.handle('createServer', async (event, data) => {
@@ -146,10 +146,10 @@ function registerIpcHandlers() {
   ipcMain.handle('getServers', async () => {
     const data_dir = app.getPath('userData').toString();
     console.log(data_dir)
-    try{
+    try {
       return await rust.getServers(data_dir);
     }
-    catch (e){
+    catch (e) {
       console.error("Rust error:", e);
     }
   })
@@ -170,9 +170,9 @@ function registerIpcHandlers() {
 
 
   ipcMain.handle('stopServers', async (event, serverId: string) => {
-    try{
+    try {
       return await rust.killContainers();
-    }catch (e){
+    } catch (e) {
       console.error("Rust error:", e);
     }
   })
@@ -235,16 +235,16 @@ function createWindow(): void {
   });
 
 
-  ipcMain.handle('kill-container', async (event, id ) => {
-    try{
-        const result = rust.killContainers(id);
-    }catch (e) {
+  ipcMain.handle('kill-container', async (event, id) => {
+    try {
+      const result = rust.killContainers(id);
+    } catch (e) {
       console.error("Rust error:", e);
     }
   })
 
 
-  ipcMain.handle('tunnel-connect', async (event,id) => {
+  ipcMain.handle('tunnel-connect', async (event, id) => {
     const result = await rust.clientConnect(id);
   })
   if (!isProd) {

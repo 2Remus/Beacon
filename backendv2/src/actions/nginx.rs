@@ -12,9 +12,9 @@ lazy_static! {
 
 
 #[napi]
-pub fn start_nginx() -> napi::Result<String> {
+pub fn start_nginx(data_dir: String) -> napi::Result<String> {
 
-    let resource_dir = crate::get_resource_path().unwrap();
+    let resource_dir = crate::get_resource_path(data_dir).unwrap();
 
     //setup paths
     let nginx_bin = if cfg!(windows) {
@@ -54,8 +54,8 @@ pub fn start_nginx() -> napi::Result<String> {
 
 
 #[napi]
-pub fn stop_nginx() -> napi::Result<String> {
-    let resource_dir = crate::get_resource_path().unwrap();
+pub fn stop_nginx(data_dir: String) -> napi::Result<String> {
+    let resource_dir = crate::get_resource_path(data_dir).unwrap();
     let  mut process = ACTIVE_NGINX.lock().unwrap();
     if let Some(mut child) = process.take() {
         child.kill().map_err(|e| napi::Error::from_reason(format!("{:?}", e)))?;
