@@ -26,7 +26,7 @@ pub fn add_server(new_server: &MinecraftServer, path: PathBuf) -> napi::Result<(
     // 3. Atomic Write (The Windows Hang-Fixer)
     let temp_path = path.with_extension("tmp");
 
-    // Write to a temp file first
+    // Write to a temp file firsttt
     fs::write(&temp_path, json)
         .map_err(|e| Error::from_reason(format!("Temp write blocked: {}", e)))?;
 
