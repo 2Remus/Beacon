@@ -244,9 +244,12 @@ function createWindow(): void {
   })
 
 
-  ipcMain.handle('tunnel-connect', async (event, id) => {
-    const result = await rust.clientConnect(id);
+  ipcMain.handle('tunnel-connect', async (event, url) => {
+    const data_dir = app.getPath('userData').toString();
+    const result = await rust.clientConnect(url, data_dir);
   })
+
+
   if (!isProd) {
     // Load from the Vite dev server
     mainWindow.loadURL('http://localhost:5173');
