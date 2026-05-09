@@ -173,20 +173,54 @@ pub fn stop_cloudflared(env: Env) -> napi::Result<(String)> {
 
 
 
-#[napi]
-pub async fn client_connect(url: String, data_dir: String) -> napi::Result<String> {
-    let resource_dir = get_resource_path(data_dir.clone())?;
-    let cloudflared_bin = get_bin(data_dir.clone()).await?;
+// #[napi]
+// pub async fn client_connect(url: String, data_dir: String) -> napi::Result<String> {
+//     let resource_dir = get_resource_path(data_dir.clone())?;
+//     let cloudflared_bin = get_bin(data_dir.clone()).await?;
     
-    let mut child = Command::new(&cloudflared_bin)
+//     let mut child = Command::new(&cloudflared_bin)
+//         .args(&["tunnel", "--url", &url, "--no-autoupdate"])
+//         .stdout(Stdio::piped())
+//         .stderr(Stdio::piped())
+//         .spawn();
+
+//     // Store in the same Mutex (Note: this will replace any server tunnel currently running)
+//     let mut registry = ACTIVE_TUNNEL.lock().unwrap();
+//     *registry = Some(child?);
+
+//     Ok(format!("tunnel-{}", url))
+// }
+
+
+
+
+//new client connect implementation
+#[napi]
+pub async fn client_connect(url: String, data_dir:String) -> napi::Result<String> {
+    let cloudflared_bin = get_bin(data_dir.clone()).await?;
+
+
+    
+        let mut registry = ACTIVE_TUNNEL.lock().map_err(|_| {
+            napi::Error::from_reason("Failed to lock tunnel registry")
+        })?;
+        
+        if let Some(mut old_child) = registry.take() {
+            let _ = old_child.kill(); // Kill previous if it exists
+        } 
+    
+
+    let child = Command::new(&cloudflared_bin)
         .args(&["tunnel", "--url", &url, "--no-autoupdate"])
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())
-        .spawn();
+        .spawn()
+        .map_err(|e| napi::Error::from_reason(format!("Failed to spawn tunnel: {}", e)))?;
 
-    // Store in the same Mutex (Note: this will replace any server tunnel currently running)
+    // 3. Store the new child
     let mut registry = ACTIVE_TUNNEL.lock().unwrap();
-    *registry = Some(child?);
+    *registry = Some(child);
 
     Ok(format!("tunnel-{}", url))
+
 }

@@ -49,10 +49,10 @@ export function enableBeaconLocalName() {
 const getBinPath = () => {
   if (isProd) {
     // Standard location for extraResources in packaged apps
-    return path.join(process.resourcesPath, 'bin', 'index.darwin-arm64.node');
+    return path.join(process.resourcesPath, 'bin', 'index.darwin-x64.node');
   } else {
     // app.getAppPath() usually points to your project root in dev
-    return path.join(app.getAppPath(), 'bin', 'index.darwin-arm64.node');
+    return path.join(app.getAppPath(), 'bin', 'index.darwin-x64.node');
   }
 };
 

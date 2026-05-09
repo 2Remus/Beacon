@@ -34,7 +34,7 @@ const store = window.__BEACON_STORE__;
 const isLoading = ref(true)
 const error = ref(null)
 const instances = ref([])
-const currentView = ref("grid")
+const currentView = ref("import")
 const activeInstance = ref(null)
 const activeMenuId = ref(null)
 
@@ -46,6 +46,7 @@ const selectedType = ref('Vanilla')
 const memoryAlloc = ref('3G')
 const isOnlineMode = ref(false)
 const isDeploying = ref(false)
+const insDragging = ref(false)
 
 const serverTypes = [
   { id: 'Vanilla', name: 'Vanilla', logo: '🍦', desc: 'Official Mojang Engine' },
@@ -177,6 +178,48 @@ const scrollToBottom = async () => {
 /**
  * 3. UI Actions
  */
+
+const handleDrop = async(e) => {
+  this.insDragging = false
+  const files = e.dataTransfer.files;
+    if (files.length > 0) {
+      this.processFile(files[0]);
+      console.logs(files)
+    }
+}
+
+const browseFiles = async () => {
+  try {
+    // 1. Open the picker (Limited to JSON for server configs)
+    const [fileHandle] = await window.showOpenFilePicker({
+      types: [{
+        description: 'Server Config (JSON)',
+        accept: { 'application/json': ['.json', '.zip'] },
+      }],
+      multiple: false
+    });
+
+    // 2. Get the actual File object
+    const file = await fileHandle.getFile();
+    
+    // 3. Read the content
+    const content = await file.text();
+    const serverData = JSON.parse(content);
+    
+    console.log("Server data loaded:", serverData);
+    
+    // 4. Logic to add to Beacon
+    // importServers(serverData);
+
+  } catch (err) {
+    if (err.name === 'AbortError') {
+      console.log("User cancelled the selection.");
+      return;
+    }
+    console.error("Failed to import server:", err);
+  }
+}
+
 const openServerStats = (server) => {
   activeInstance.value = server;
   currentView.value = "stats";
@@ -184,7 +227,7 @@ const openServerStats = (server) => {
   scrollToBottom();
 };
 
-const closeStats = () => {
+const closeMenu = () => {
   currentView.value = "grid";
   activeInstance.value = null;
   selectedPlayer.value = null;
@@ -442,7 +485,7 @@ onUnmounted(() => {
         </div>
 
         <div class="header-actions">
-          <button class="btn-secondary" @click="closeStats">Return to Dashboard</button>
+          <button class="btn-secondary" @click="closeMenu">Return to Dashboard</button>
         </div>
       </header>
 
@@ -509,12 +552,76 @@ onUnmounted(() => {
       </div>
     </div>
 
+    <div v-if="currentView === 'import'" class="view-layer import-view-container modal-overlay">
+      <transition name="pop">
+        <div class="modal-glass import-body">
+          <header class="modal-header">
+            <h2>Import New Server</h2>
+            <button @click="closeMenu" class="btn-secondary">Back</button>
+         </header>
+          
+          <div class="import-pane">
+            <div class="drop-zone"
+
+            :class="{ 'is-dragging': isDragging }"
+            @dragover.prevent="isDragging = true"
+            @dragleave.prevent="isDragging = false"
+            @drop.prevent="handleFileDrop"
+            >
+             <div class="drop-content">
+               <i class="upload-icon">📄</i>
+               <p v-if="!selectedFile">Drag server file here or <span @click="browseFiles" >browse</span></p>
+               <p v-else><strong>Selected:</strong> {{ selectedFile.name }}</p>
+             </div> 
+            </div>
+            <div class="form-group">
+              <label>Server Alias</label>
+              <input v-model="newInstanceName"
+            </div>
+          </div>
+          <button class='primary-btn'>Import Instance</button>
+        </div>
+      </transition>
+    </div>
+
   </div>
 </template>
 
 
 
 <style scoped>
+
+  .import-body h2{
+    color: rgba(240, 240, 240, 0.9);
+  }
+
+
+.drop-zone span{
+  color: #409eff;
+  text-decoration: underline;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.drop-zone{
+  border: 2px dashed rgba(255, 255, 255, 0.3);
+  border-radius: 12px;
+  padding: 40px;
+  text-align: center;
+  transition: all 0.3s ease;
+  position: relative;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+
+drop-zone.is-dragging{
+  background: rgba(64,158,255, 0.05);
+}
+
+
+.import-view-container{
+  
+}
 .dashboard-container { padding: 40px; max-width: 1400px; margin: 0 auto; color: #1d1d1f; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; min-height: 100vh; }
 .dashboard-header { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 40px; flex-shrink: 0; }
 h1 { font-size: 2.5rem; font-weight: 900; letter-spacing: -1.5px; margin: 0; }
