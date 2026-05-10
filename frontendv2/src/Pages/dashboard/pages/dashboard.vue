@@ -194,7 +194,7 @@ const browseFiles = async () => {
     const [fileHandle] = await window.showOpenFilePicker({
       types: [{
         description: 'Server Config (JSON)',
-        accept: { 'application/json': ['.json', '.zip'] },
+        accept: { 'application/json': ['.zip'] },
       }],
       multiple: false
     });
@@ -557,9 +557,8 @@ onUnmounted(() => {
         <div class="modal-glass import-body">
           <header class="modal-header">
             <h2>Import New Server</h2>
-            <button @click="closeMenu" class="btn-secondary">Back</button>
          </header>
-          
+          <button @click="closeMenu" class="btn-secondary import-view-back">Back</button>
           <div class="import-pane">
             <div class="drop-zone"
 
@@ -574,10 +573,21 @@ onUnmounted(() => {
                <p v-else><strong>Selected:</strong> {{ selectedFile.name }}</p>
              </div> 
             </div>
-            <div class="form-group">
+
+            <div class="form-group input-stack">
               <label>Server Alias</label>
-              <input v-model="newInstanceName"
+              <input v-model="newInstanceName" class="fancy-input">
             </div>
+
+
+            <div class="form-row">
+            <div class="input-stack half">
+              <label>Engine Version</label>
+              <select v-model="newInstanceVersion" class="fancy-input">
+                <option v-for="v in availableVersions" :key="v" :value="v">{{ v }}</option>
+              </select>
+            </div>
+          </div>
           </div>
           <button class='primary-btn'>Import Instance</button>
         </div>
@@ -590,6 +600,30 @@ onUnmounted(() => {
 
 
 <style scoped>
+
+  .import-view-back{
+    margin: 10px;
+  }
+
+  .import-view-container btn-secondary{
+    display: flex;
+    align-self: left;
+  }
+
+
+  .import-view-container primary-btn{
+    margin: 10px;
+  }
+
+  .form-group{
+    padding: 20px 0px 20px 0px;
+    display: flex;
+  }
+
+  .form-group label{
+    color: rgba(255, 255, 255, 0.9);
+    padding: 10px ;
+  }
 
   .import-body h2{
     color: rgba(240, 240, 240, 0.9);
@@ -619,9 +653,6 @@ drop-zone.is-dragging{
 }
 
 
-.import-view-container{
-  
-}
 .dashboard-container { padding: 40px; max-width: 1400px; margin: 0 auto; color: #1d1d1f; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; min-height: 100vh; }
 .dashboard-header { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 40px; flex-shrink: 0; }
 h1 { font-size: 2.5rem; font-weight: 900; letter-spacing: -1.5px; margin: 0; }
@@ -717,7 +748,7 @@ h1 { font-size: 2.5rem; font-weight: 900; letter-spacing: -1.5px; margin: 0; }
 .input-stack label { font-size: 0.7rem; font-weight: 800; color: #e5e5e8; text-transform: uppercase; letter-spacing: 0.5px; }
 .fancy-input {
   background: rgba(7, 6, 6, 0.18); border: none; padding: 15px; border-radius: 16px;
-  font-size: 1rem; font-weight: 600; color: #1d1d1f; outline: none;
+  font-size: 1rem; font-weight: 600; color: #fffffc; outline: none;
 }
 .form-row { display: flex; gap: 15px; }
 .form-row .half { flex: 1; }

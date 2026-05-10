@@ -2,7 +2,7 @@
   "name": "beacon-frontend",
   "version": "1.0.0",
   "description": "Beacon Desktop Application",
-  "author": "Adafa Ralph <adafax4@gmail.com>",
+  "author": "Adafa (Remus) Ralph <adafax4@gmail.com>",
   "main": "electron-main.ts",
   "private": true,
   "type": "module",
@@ -15,7 +15,7 @@
     "vite:dev": "vite",
     "electron:launch": "wait-on -t 30000 http://localhost:5173 && electron ./electron-main.ts",
     "dev": "npm run sync-bins && concurrently --kill-others \"npm run vite:dev\" \"npm run electron:launch\"",
-    "dev:nosync": "npm run vite:dev \"npm run electron:launch\"",
+    "dev:nosync": "concurrently --kill-others \"npm run vite:dev\" \"npm run electron:launch\"",
     "build": "vite build && electron-builder"
   },
   "build": {
