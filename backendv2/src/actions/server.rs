@@ -15,6 +15,8 @@ use crate::database::add_server::add_server;
 use crate::models::container::ContainerConfig;
 use crate::models::ServerStorage::Provider;
 use tokio::fs::File as AsyncFile;
+use zip::ZipArchive;
+use crate::database::server_import;
 //use tokio::io::AsyncWriteExt;
 
 #[napi]
@@ -45,8 +47,6 @@ pub async fn create_server(
         online_mode,
     };
 
-    // 3. PROVISION (The Filesystem Layer)
-    // Creates the /containers/id folder, symlinks the JAR, and writes server.properties
     let container_path = create_container_env(container_config, data_dir.clone())?;
 
     // 4. REGISTER (The Persistence Layer)
@@ -57,9 +57,11 @@ pub async fn create_server(
         provider,
         port,
         ram: ram_mb,
+        world: None,
         // Using the actual path returned by the provisioner
         instance_path: container_path.to_string_lossy().to_string(),
         status: "stopped".to_string(),
+        //..Default::default()
     };
 
     let db_path = std::path::PathBuf::from(data_dir).join("db.json");
@@ -217,10 +219,54 @@ async fn ensure_jar_exists(provider: &Provider, version: &str, path: String) -> 
 }
 
 
+#[napi]
+async fn import_server<T>(
 
-// #[napi]
-// async fn import_server(file_path: PathBuf, data_dir: String) -> napi:Result<String>{
+    id: String,
+    name: String,
+    version: String,
+    online_mode: bool,
+    data_dir: String,
+    file_path:String,
 
-//     //Import Server
+    ) -> napi::Result<T>{
 
-// }
+    // import_path = PathBuf::from_str(file_path);
+    // let file = File::Open(file_path)?;
+    // let mut world = ZipArchive::new(file);
+
+    let server = MinecraftServer {
+        id: id.clone(),
+        name,
+        version,
+        provider,
+        port,
+        ram: ram_mb,
+        // Using the actual path returned by the provisioner
+        instance_path: container_path.to_string_lossy().to_string(),
+        status: "stopped".to_string(),
+        world: Some(file_path),
+        ..Default::default()
+    };
+
+
+    let jar_path = ensure_jar_exists(&provider, &version, data_dir.clone()).await?;
+
+
+    let config = ContainerConfig {
+        server_id: id.clone(), // Clone here so we can use 'id' again later
+        jar_path: jar_path.to_string_lossy().into_owned(),
+        port,
+        ram_mb,
+        enable_rcon: true,
+        online_mode,
+    };
+
+    let container_path = create_container_env(config, data_dir);
+
+
+
+
+    Ok(());
+
+}

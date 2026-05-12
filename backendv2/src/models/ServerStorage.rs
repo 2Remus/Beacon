@@ -40,6 +40,7 @@ pub struct MinecraftServer {
     pub version: String,
     pub status: String,
     pub provider: Provider,
+    pub world: Option<String>,
     pub port: u32,
     pub ram: u32,
 }

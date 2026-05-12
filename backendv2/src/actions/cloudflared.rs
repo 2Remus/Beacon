@@ -154,7 +154,7 @@ pub async fn start_cloudflared(port: u32, data_dir: String) -> napi::Result<clou
     })
 }
 #[napi]
-pub fn stop_cloudflared(env: Env) -> napi::Result<(String)> {
+pub fn stop_cloudflared(env: Env) -> napi::Result<String> {
     let mut lock = ACTIVE_TUNNEL.lock().unwrap();
 
     if let Some(mut child) = lock.take() {
