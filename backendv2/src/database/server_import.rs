@@ -10,7 +10,7 @@ use std::str::FromStr;
 use std::io;
 
 
-pub async fn server_import<T>(server: &MinecraftServer, container: PathBuf, data_dir: String) -> napi::Result<()>{ // Changed T to () since you return Ok(())
+pub async fn server_import(server: &MinecraftServer, container: PathBuf, data_dir: String) -> napi::Result<()>{ // Changed T to () since you return Ok(())
 	
 	let path = PathBuf::from(server.world.as_deref().unwrap_or("world"));
 	let file = File::open(&path).map_err(|e| napi::Error::from_reason(e.to_string()))?;

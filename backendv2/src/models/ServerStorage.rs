@@ -41,8 +41,24 @@ pub struct MinecraftServer {
     pub status: String,
     pub provider: Provider,
     pub world: Option<String>,
-    pub port: u32,
-    pub ram: u32,
+    pub port: Option<u32>,
+    pub ram: Option<u32>,
+}
+
+impl Default for MinecraftServer {
+    fn default() -> Self {
+        Self {
+            id: "Test".to_string() ,
+            name: "New Server".into(),
+            status: "stopped".into(),
+            version: "latest".into(),
+            instance_path: "/var/lib/minecraft".to_string(),
+            provider: Provider::Vanilla, 
+            port: Some(25565),
+            ram: Some(2048),
+            world: None,
+        }
+    }
 }
 
 #[derive(Serialize, Deserialize, Debug)]

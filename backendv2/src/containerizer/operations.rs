@@ -53,14 +53,14 @@ pub fn create_container_env(config: ContainerConfig, path: String) -> napi::Resu
     }
 
     let mut properties = Vec::new();
-    properties.push(format!("server-port={}", config.port));
-    properties.push(format!("query.port={}", config.port));
+    properties.push(format!("server-port={}", config.port.unwrap_or(25565)));
+    properties.push(format!("query.port={}", config.port.unwrap_or(25565)));
     properties.push("server-ip=127.0.0.1".to_string()); // Force local binding for Tunnel security
     properties.push("enable-query=true".to_string());
-    properties.push(format!("online-mode={}", config.online_mode)); //can cause problems should fix later
+    properties.push(format!("online-mode={}", config.online_mode.unwrap_or(false))); //can cause problems should fix later
     properties.push("gui=false".to_string());
 
-    if config.enable_rcon {
+    if config.enable_rcon.unwrap_or(true) {
         properties.push("enable-rcon=true".to_string());
         properties.push("rcon.password=beacon_secure_pass".to_string());
     }
@@ -74,7 +74,7 @@ pub fn create_container_env(config: ContainerConfig, path: String) -> napi::Resu
     let jvm_args = format!(
         "java -Xmx{}M -Xms{}M -jar server.jar nogui", //for some reason opens a terminal on
         //windows??
-        config.ram_mb, config.ram_mb
+        config.ram_mb.unwrap_or(1024), config.ram_mb.unwrap_or(1024)
     );
     fs::write(root.join("start.sh"), jvm_args)?;
 

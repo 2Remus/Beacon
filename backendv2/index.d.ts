@@ -16,8 +16,9 @@ export interface MinecraftServer {
   version: string
   status: string
   provider: Provider
-  port: number
-  ram: number
+  world?: string
+  port?: number
+  ram?: number
 }
 export interface CloudflaredRespone {
   url: string
@@ -27,10 +28,10 @@ export interface CloudflaredRespone {
 export interface ContainerConfig {
   serverId: string
   jarPath: string
-  port: number
-  ramMb: number
-  enableRcon: boolean
-  onlineMode: boolean
+  port?: number
+  ramMb?: number
+  enableRcon?: boolean
+  onlineMode?: boolean
 }
 export declare function startCloudflared(port: number, dataDir: string): Promise<CloudflaredRespone>
 export declare function stopCloudflared(): string
@@ -39,6 +40,7 @@ export declare function startNginx(dataDir: string): string
 export declare function stopNginx(dataDir: string): string
 export declare function createServer(id: string, name: string, provider: Provider, version: string, ramMb: number, port: number, onlineMode: boolean, dataDir: string): Promise<string>
 export declare function getServers(dataDir: string): Promise<Array<MinecraftServer>>
+export declare function importServer(id: string, name: string, version: string, provider: Provider, onlineMode: boolean, dataDir: string, filePath: string): Promise<void>
 export declare function spawnContainer(id: string, binDir: string, ram: number): SpawnResult
 export declare function streamLogs(id: string, callback: (err: Error | null, arg: string) => any): void
 export declare function killContainers(): string

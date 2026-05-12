@@ -310,7 +310,7 @@ if (!nativeBinding) {
   throw new Error(`Failed to load native binding`)
 }
 
-const { Provider, CreateServerRequest, startCloudflared, stopCloudflared, clientConnect, startNginx, stopNginx, createServer, getServers, spawnContainer, streamLogs, killContainers, killContainer } = nativeBinding
+const { Provider, CreateServerRequest, startCloudflared, stopCloudflared, clientConnect, startNginx, stopNginx, createServer, getServers, importServer, spawnContainer, streamLogs, killContainers, killContainer } = nativeBinding
 
 module.exports.Provider = Provider
 module.exports.CreateServerRequest = CreateServerRequest
@@ -321,6 +321,7 @@ module.exports.startNginx = startNginx
 module.exports.stopNginx = stopNginx
 module.exports.createServer = createServer
 module.exports.getServers = getServers
+module.exports.importServer = importServer
 module.exports.spawnContainer = spawnContainer
 module.exports.streamLogs = streamLogs
 module.exports.killContainers = killContainers

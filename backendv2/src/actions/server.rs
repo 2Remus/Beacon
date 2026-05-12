@@ -16,7 +16,7 @@ use crate::models::container::ContainerConfig;
 use crate::models::ServerStorage::Provider;
 use tokio::fs::File as AsyncFile;
 use zip::ZipArchive;
-use crate::database::server_import;
+use crate::database::server_import::server_import;
 //use tokio::io::AsyncWriteExt;
 
 #[napi]
@@ -41,10 +41,10 @@ pub async fn create_server(
     let container_config = ContainerConfig {
         server_id: id.clone(), // Clone here so we can use 'id' again later
         jar_path: jar_path.to_string_lossy().into_owned(),
-        port,
-        ram_mb,
-        enable_rcon: true,
-        online_mode,
+        port:Some(port),
+        ram_mb:Some(ram_mb),
+        enable_rcon: Some(true),
+        online_mode:Some(online_mode),
     };
 
     let container_path = create_container_env(container_config, data_dir.clone())?;
@@ -54,14 +54,13 @@ pub async fn create_server(
         id: id.clone(),
         name,
         version,
-        provider,
-        port,
-        ram: ram_mb,
+        port: Some(port),
+        provider: provider, 
+        ram: Some(ram_mb),        
         world: None,
-        // Using the actual path returned by the provisioner
         instance_path: container_path.to_string_lossy().to_string(),
         status: "stopped".to_string(),
-        //..Default::default()
+        ..Default::default()
     };
 
     let db_path = std::path::PathBuf::from(data_dir).join("db.json");
@@ -75,9 +74,6 @@ pub async fn create_server(
 pub async fn get_servers(data_dir: String) -> napi::Result<Vec<MinecraftServer>> {
     let db_path = std::path::PathBuf::from(data_dir).join("db.json");
 
-    // We don't spawn a standard thread manually here;
-    // we use tokio (which napi-rs uses under the hood for async)
-    // to poll until the file is ready or just read it once.
 
     if !db_path.exists() {
         // Ensure the directory exists first
@@ -88,8 +84,6 @@ pub async fn get_servers(data_dir: String) -> napi::Result<Vec<MinecraftServer>>
             .map_err(|e| napi::Error::from_reason(format!("Init failed: {}", e)))?;
     }
 
-    // Instead of a loop that disappears, we just perform the read.
-    // If you need to wait for a specific condition, do it here.
         let content = std::fs::read_to_string(&db_path)
             .map_err(|e| Error::from_reason(e.to_string()))?;
 
@@ -220,53 +214,48 @@ async fn ensure_jar_exists(provider: &Provider, version: &str, path: String) -> 
 
 
 #[napi]
-async fn import_server<T>(
+async fn import_server(
 
     id: String,
     name: String,
     version: String,
+    provider: Provider,
     online_mode: bool,
     data_dir: String,
     file_path:String,
 
-    ) -> napi::Result<T>{
+    ) -> napi::Result<()>{
 
     // import_path = PathBuf::from_str(file_path);
     // let file = File::Open(file_path)?;
     // let mut world = ZipArchive::new(file);
+
+    let jar_path = ensure_jar_exists(&provider, &version, data_dir.clone()).await?;
+
+
+
+    let config = ContainerConfig {
+        server_id: id.clone(), // Clone here so we can use 'id' again later
+        jar_path: jar_path.to_string_lossy().into_owned(),
+        ..Default:: default()
+    };
+
+    let container_path = create_container_env(config, data_dir.clone());
 
     let server = MinecraftServer {
         id: id.clone(),
         name,
         version,
         provider,
-        port,
-        ram: ram_mb,
         // Using the actual path returned by the provisioner
-        instance_path: container_path.to_string_lossy().to_string(),
+        instance_path: container_path.clone().unwrap().to_string_lossy().to_string(),
         status: "stopped".to_string(),
         world: Some(file_path),
         ..Default::default()
     };
 
+    server_import(&server, container_path?, data_dir).await?;
 
-    let jar_path = ensure_jar_exists(&provider, &version, data_dir.clone()).await?;
-
-
-    let config = ContainerConfig {
-        server_id: id.clone(), // Clone here so we can use 'id' again later
-        jar_path: jar_path.to_string_lossy().into_owned(),
-        port,
-        ram_mb,
-        enable_rcon: true,
-        online_mode,
-    };
-
-    let container_path = create_container_env(config, data_dir);
-
-
-
-
-    Ok(());
+    Ok(())
 
 }
