@@ -47,6 +47,8 @@ const memoryAlloc = ref('3G')
 const isOnlineMode = ref(false)
 const isDeploying = ref(false)
 const insDragging = ref(false)
+const selectedFile = ref(null);
+const selectedPath = ref("");
 
 const serverTypes = [
   { id: 'Vanilla', name: 'Vanilla', logo: '🍦', desc: 'Official Mojang Engine' },
@@ -188,13 +190,41 @@ const handleDrop = async(e) => {
     }
 }
 
+
+
+const triggerImport = async() => {
+  console.log("import server")
+
+}
+
+ // const [fileHandle] = await window.showOpenFilePicker({
+ //      types: [{
+ //        description: 'Server Config (JSON)',
+ //        accept: { 'application/zip': ['.zip'] },
+ //      }],
+ //      multiple: false
+
+
+const updateSelection = (file) => {
+  // Update the UI ref (this toggles your v-if/v-else)
+  selectedFile.value = file;
+
+  // Store the path for Rust (Tauri injects .path into the File object)
+  selectedPath.value = file.path || "";
+
+  // Auto-fill Alias if empty
+  if (!newInstanceName.value) {
+    newInstanceName.value = file.name.replace(".zip", "");
+  }
+};
+
 const browseFiles = async () => {
   try {
-    // 1. Open the picker (Limited to JSON for server configs)
+    // 1. Open the picker using your configuration
     const [fileHandle] = await window.showOpenFilePicker({
       types: [{
-        description: 'Server Config (JSON)',
-        accept: { 'application/json': ['.zip'] },
+        description: 'Server Config (ZIP)',
+        accept: { 'application/zip': ['.zip'] },
       }],
       multiple: false
     });
@@ -202,23 +232,28 @@ const browseFiles = async () => {
     // 2. Get the actual File object
     const file = await fileHandle.getFile();
     
-    // 3. Read the content
-    const content = await file.text();
-    const serverData = JSON.parse(content);
-    
-    console.log("Server data loaded:", serverData);
-    
-    // 4. Logic to add to Beacon
-    // importServers(serverData);
+    // 3. Update the UI and Path
+    // In Tauri, 'file.path' is typically available on dropped or picked files
+    updateSelection(file);
 
   } catch (err) {
-    if (err.name === 'AbortError') {
-      console.log("User cancelled the selection.");
-      return;
+    if (err.name !== 'AbortError') {
+      console.error("Failed to select file:", err);
     }
-    console.error("Failed to import server:", err);
   }
-}
+};
+
+
+const handleFileDrop = (e) => {
+  isDragging.value = false;
+  const file = e.dataTransfer.files[0];
+  
+  if (file && file.name.endsWith('.zip')) {
+    updateSelection(file);
+  }
+};
+
+
 
 const openServerStats = (server) => {
   activeInstance.value = server;
@@ -589,7 +624,7 @@ onUnmounted(() => {
             </div>
           </div>
           </div>
-          <button class='primary-btn'>Import Instance</button>
+          <button class='primary-btn' @click='triggerImport()'>Import Instance</button>
         </div>
       </transition>
     </div>

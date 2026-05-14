@@ -178,6 +178,24 @@ function registerIpcHandlers() {
   })
 
 
+ipcMain.handle('import-server', async(event, data) => {
+    const data_dir = app.getPath('userData').toString();
+    try{
+      return await rust.importServer(
+          data.id,
+          data.name,
+          data.version,
+          data.online_mode,
+          data.file_path,
+          data_dir,
+
+        )
+    } catch(e){
+      console.error("Rust error: ",e )
+    }
+
+  })
+
 }
 
 

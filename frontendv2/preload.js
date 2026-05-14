@@ -9,7 +9,6 @@ contextBridge.exposeInMainWorld('electron', {
     stopCloudflare: () => ipcRenderer.invoke('stopCloudflared'),
     createServer: (id, name, provider, version, ram, port, online) =>
       ipcRenderer.invoke('createServer', { id, name, provider, version, ram, port, online }),
-
     startServer: (payload) => ipcRenderer.invoke('startServer',payload),
     getLogs: (id) => ipcRenderer.invoke('subscribe-to-logs', id),
 
@@ -29,12 +28,11 @@ contextBridge.exposeInMainWorld('electron', {
             ipcRenderer.removeListener(channel, listener);
         };
 
-    },
+    }, 
 
+    serverImport: (id, name, provider, version, path) => ipcRenderer.invoke('import-server',{id, name, provider, version, path}),
     stopServer: () => ipcRenderer.invoke('kill-container'),
-
-
     killContainers: (id) => ipcRenderer.invoke('killContainers', id),
-
     clientConnect: (url) => ipcRenderer.invoke('tunnel-connect', url),
+
 });
