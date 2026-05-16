@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain } from 'electron';
+import { app, BrowserWindow, ipcMain, dialog } from 'electron';
 import * as path from 'path';
 import { fileURLToPath } from 'url';
 import { createRequire } from 'module';
@@ -142,6 +142,19 @@ function registerIpcHandlers() {
     }
   });
 
+  ipcMain.handle('open-zip', async () => {
+  const result = await dialog.showOpenDialog({
+    properties: ['openFile'],
+    filters: [
+      { name: 'Zip Files', extensions: ['zip'] } // Restrict to zips
+    ]
+  })
+
+  if (!result.canceled && result.filePaths.length > 0) {
+    return result.filePaths[0] // Returns the absolute string path: "C:\path\to\file.zip"
+  }
+  return null
+  })
 
   ipcMain.handle('getServers', async () => {
     const data_dir = app.getPath('userData').toString();
@@ -177,18 +190,21 @@ function registerIpcHandlers() {
     }
   })
 
-
-ipcMain.handle('import-server', async(event, data) => {
+  ipcMain.handle('import-server', async(event, data) => {
+    const onlineMode = data.online_mode === true || data.online_mode === 'true';
     const data_dir = app.getPath('userData').toString();
+    console.log(          
+          data
+)
     try{
       return await rust.importServer(
           data.id,
           data.name,
           data.version,
-          data.online_mode,
-          data.file_path,
+          data.provider,
+          onlineMode,
+          data.path,
           data_dir,
-
         )
     } catch(e){
       console.error("Rust error: ",e )
@@ -245,8 +261,6 @@ function createWindow(): void {
 
 
 
-
-
   app.on('before-quit', () => {
     console.log("Shutting down... calling Rust cleanup.");
     cleanupResources();
@@ -266,6 +280,7 @@ function createWindow(): void {
     const data_dir = app.getPath('userData').toString();
     const result = await rust.clientConnect(url, data_dir);
   })
+
 
 
   if (!isProd) {

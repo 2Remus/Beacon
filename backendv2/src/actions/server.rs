@@ -221,8 +221,8 @@ async fn import_server(
     version: String,
     provider: Provider,
     online_mode: bool,
-    data_dir: String,
     file_path:String,
+    data_dir: String,
 
     ) -> napi::Result<()>{
 

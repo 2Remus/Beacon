@@ -40,7 +40,7 @@ export declare function startNginx(dataDir: string): string
 export declare function stopNginx(dataDir: string): string
 export declare function createServer(id: string, name: string, provider: Provider, version: string, ramMb: number, port: number, onlineMode: boolean, dataDir: string): Promise<string>
 export declare function getServers(dataDir: string): Promise<Array<MinecraftServer>>
-export declare function importServer(id: string, name: string, version: string, provider: Provider, onlineMode: boolean, dataDir: string, filePath: string): Promise<void>
+export declare function importServer(id: string, name: string, version: string, provider: Provider, onlineMode: boolean, filePath: string, dataDir: string): Promise<void>
 export declare function spawnContainer(id: string, binDir: string, ram: number): SpawnResult
 export declare function streamLogs(id: string, callback: (err: Error | null, arg: string) => any): void
 export declare function killContainers(): string

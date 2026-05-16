@@ -37,6 +37,8 @@ const instances = ref([])
 const currentView = ref("import")
 const activeInstance = ref(null)
 const activeMenuId = ref(null)
+const isDeploying = ref(false)
+const insDragging = ref(false)
 
 // UI Deployment States
 const isCreating = ref(false)
@@ -45,8 +47,6 @@ const newInstanceVersion = ref('1.20.1')
 const selectedType = ref('Vanilla')
 const memoryAlloc = ref('3G')
 const isOnlineMode = ref(false)
-const isDeploying = ref(false)
-const insDragging = ref(false)
 const selectedFile = ref(null);
 const selectedPath = ref("");
 
@@ -193,8 +193,17 @@ const handleDrop = async(e) => {
 
 
 const triggerImport = async() => {
-  console.log("import server")
-
+  console.log(newInstanceName.value,newInstanceVersion.value, selectedType.value, isOnlineMode.value, selectedPath.value)
+  try{
+     const result =  await window.electron.serverImport(crypto.randomUUID(),newInstanceName.value,newInstanceVersion.value, selectedType.value, isOnlineMode.value, selectedPath.value);
+     if (result && !result.error){
+       isCreating.value = false;
+        newInstanceName.value = '';
+        await fetchServers();
+     }
+  }finally{
+    isDeploying.value = false
+  }
 }
 
  // const [fileHandle] = await window.showOpenFilePicker({
@@ -205,41 +214,37 @@ const triggerImport = async() => {
  //      multiple: false
 
 
-const updateSelection = (file) => {
-  // Update the UI ref (this toggles your v-if/v-else)
-  selectedFile.value = file;
+const updateSelection = (filePath) => {
+  const fileName = filePath.split(/[\\/]/).pop() || "";
+  selectedFile.value = {
+    name: fileName,
+    path: filePath
+  };
 
-  // Store the path for Rust (Tauri injects .path into the File object)
-  selectedPath.value = file.path || "";
+  selectedPath.value = filePath;
 
-  // Auto-fill Alias if empty
-  if (!newInstanceName.value) {
-    newInstanceName.value = file.name.replace(".zip", "");
+  console.log("Selected File Object:", selectedFile.value);
+
+  // 4. Automatically set the instance name if it's empty
+  if (!newInstanceName.value && fileName) {
+    newInstanceName.value = fileName.replace(".zip", "");
   }
 };
 
+
 const browseFiles = async () => {
   try {
-    // 1. Open the picker using your configuration
-    const [fileHandle] = await window.showOpenFilePicker({
-      types: [{
-        description: 'Server Config (ZIP)',
-        accept: { 'application/zip': ['.zip'] },
-      }],
-      multiple: false
-    });
+    // 1. Open the native OS picker via your working Electron bridge
+    const filePath = await window.electron.openZipPicker();
 
-    // 2. Get the actual File object
-    const file = await fileHandle.getFile();
-    
-    // 3. Update the UI and Path
-    // In Tauri, 'file.path' is typically available on dropped or picked files
-    updateSelection(file);
-
-  } catch (err) {
-    if (err.name !== 'AbortError') {
-      console.error("Failed to select file:", err);
+    // 2. If the user didn't cancel and a path was returned, pass it to your selection handler
+    if (filePath) {
+      updateSelection(filePath);
     }
+    
+  } catch (err) {
+    // Catch-all for unexpected IPC or OS errors
+    console.error("Failed to select file:", err);
   }
 };
 
@@ -621,6 +626,31 @@ onUnmounted(() => {
               <select v-model="newInstanceVersion" class="fancy-input">
                 <option v-for="v in availableVersions" :key="v" :value="v">{{ v }}</option>
               </select>
+            <div class="input-stack">
+              <label>Server Software</label>
+              <div class="type-grid">
+                <div
+                  v-for="type in serverTypes"
+                  :key="type.id"
+                  class="type-box"
+                  :class="{ active: selectedType === type.id }"
+                  @click="selectedType = type.id"
+                >
+                  <div class="type-logo">{{ type.logo }}</div>
+                  <div class="type-info">
+                    <span class="type-name">{{ type.name }}</span>
+                    <span class="type-desc">{{ type.desc }}</span>
+                  </div>
+                </div>
+            </div>
+            <div class="toggle-stack" @click="isOnlineMode = !isOnlineMode">
+              <div class="toggle-info">
+                <span class="toggle-label">Online Mode</span>
+                <span class="toggle-desc">Require official Mojang authentication</span>
+                </div>
+                <div class="toggle-switch" :class="{ on: isOnlineMode }"></div>
+                </div>
+              </div>
             </div>
           </div>
           </div>
@@ -675,7 +705,7 @@ onUnmounted(() => {
 .drop-zone{
   border: 2px dashed rgba(255, 255, 255, 0.3);
   border-radius: 12px;
-  padding: 40px;
+  padding: 8px;
   text-align: center;
   transition: all 0.3s ease;
   position: relative;
