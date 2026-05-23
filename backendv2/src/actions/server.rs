@@ -31,13 +31,9 @@ pub async fn create_server(
     data_dir: String,
 ) -> napi::Result<String> {
 
-    // 1. RESOLVE & DOWNLOAD (The Pull Step)
-    //
-    // Pulls from cache or hits the API (Paper/Fabric/Vanilla)
+
     let jar_path = ensure_jar_exists(&provider, &version, data_dir.clone()).await?;
 
-    // 2. BUILD CONFIG (The Environment Metadata)
-    // We initialize fully here to avoid the "partially assigned" E0381 error.
     let container_config = ContainerConfig {
         server_id: id.clone(), // Clone here so we can use 'id' again later
         jar_path: jar_path.to_string_lossy().into_owned(),
@@ -91,6 +87,57 @@ pub async fn get_servers(data_dir: String) -> napi::Result<Vec<MinecraftServer>>
             .map_err(|e| Error::from_reason(e.to_string()))?;
 
     Ok(servers)
+}
+
+
+
+
+#[napi]
+async fn import_server(
+
+    id: String,
+    name: String,
+    version: String,
+    provider: Provider,
+    online_mode: bool,
+    file_path:String,
+    data_dir: String,
+
+    ) -> napi::Result<()>{
+
+    // import_path = PathBuf::from_str(file_path);
+    // let file = File::Open(file_path)?;
+    // let mut world = ZipArchive::new(file);
+
+    let jar_path = ensure_jar_exists(&provider, &version, data_dir.clone()).await?;
+
+
+
+    let config = ContainerConfig {
+        server_id: id.clone(), // Clone here so we can use 'id' again later
+        jar_path: jar_path.to_string_lossy().into_owned(),
+        ..Default:: default()
+    };
+
+    let container_path = create_container_env(config, data_dir.clone());
+
+    let servers: MinecraftServer {
+        id: id.clone(),
+        name,
+        version,
+        provider,
+        // Using the actual path returned by the provisioner
+        instance_path: container_path.clone().unwrap().to_string_lossy().to_string(),
+        status: "stopped".to_string(),
+        world: Some(file_path),
+        ..Default::default()
+    };
+
+    let db_path = std::path::PathBuf::from(data_dir.clone()).join("db.json");
+    server_import(&server, container_path?, data_dir, db_path.clone()).await?;
+
+    Ok(())
+
 }
 
 
@@ -213,49 +260,3 @@ async fn ensure_jar_exists(provider: &Provider, version: &str, path: String) -> 
 }
 
 
-#[napi]
-async fn import_server(
-
-    id: String,
-    name: String,
-    version: String,
-    provider: Provider,
-    online_mode: bool,
-    file_path:String,
-    data_dir: String,
-
-    ) -> napi::Result<()>{
-
-    // import_path = PathBuf::from_str(file_path);
-    // let file = File::Open(file_path)?;
-    // let mut world = ZipArchive::new(file);
-
-    let jar_path = ensure_jar_exists(&provider, &version, data_dir.clone()).await?;
-
-
-
-    let config = ContainerConfig {
-        server_id: id.clone(), // Clone here so we can use 'id' again later
-        jar_path: jar_path.to_string_lossy().into_owned(),
-        ..Default:: default()
-    };
-
-    let container_path = create_container_env(config, data_dir.clone());
-
-    let server = MinecraftServer {
-        id: id.clone(),
-        name,
-        version,
-        provider,
-        // Using the actual path returned by the provisioner
-        instance_path: container_path.clone().unwrap().to_string_lossy().to_string(),
-        status: "stopped".to_string(),
-        world: Some(file_path),
-        ..Default::default()
-    };
-
-    server_import(&server, container_path?, data_dir).await?;
-
-    Ok(())
-
-}

@@ -1,5 +1,3 @@
-use crate::models::ServerStorage::MinecraftServer;
-use crate::models::container::ContainerConfig;
 use zip::ZipArchive;
 use std::path::PathBuf;
 use std::fs::File;
@@ -8,9 +6,14 @@ use std::fs;
 use std::fs::Permissions;
 use std::str::FromStr;
 use std::io;
+use std::io::{BufReader, BufWriter};
+use napi::Error;
+use serde_json::Value;
+use crate::models::ServerStorage::{ServerRegistry, MinecraftServer};
 
 
-pub async fn server_import(server: &MinecraftServer, container: PathBuf, data_dir: String) -> napi::Result<()>{ // Changed T to () since you return Ok(())
+
+pub async fn server_import(server: &MinecraftServer, container: PathBuf, data_dir: String, db_path: PathBuf) -> napi::Result<()>{ // Changed T to () since you return Ok(())
 	
 	let path = PathBuf::from(server.world.as_deref().unwrap_or("world"));
 	let file = File::open(&path).map_err(|e| napi::Error::from_reason(e.to_string()))?;
@@ -58,7 +61,19 @@ pub async fn server_import(server: &MinecraftServer, container: PathBuf, data_di
         }
 
 
-	}
+	};
+
+
+	let mut servers: Vec<MinecraftServer> = { // <-- Added the '=' here
+    if db_path.exists() {
+        let content = fs::read_to_string(&db_path)
+            .map_err(|e| Error::from_reason(format!("Read conflict: {}", e)))?;
+        serde_json::from_str(&content).unwrap_or_default()
+    } else {
+        vec![]
+    }
+	};
+
 
 	Ok(())
 }
