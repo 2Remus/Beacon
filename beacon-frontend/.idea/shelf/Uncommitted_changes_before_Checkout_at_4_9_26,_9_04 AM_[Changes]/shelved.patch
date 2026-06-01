@@ -1,0 +1,97 @@
+Index: ../frontendv2/package.json
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+>{\n  \"name\": \"beacon-frontend\",\n  \"version\": \"1.0.0\",\n  \"description\": \"Beacon Desktop Application\",\n  \"author\": \"Adafa Ralph <adafax4@gmail.com>\",\n  \"main\": \"electron-main.ts\",\n  \"private\": true,\n  \"type\": \"module\",\n  \"engines\": {\n    \"node\": \">=20.19.0\"\n  },\n  \"scripts\": {\n    \"sync-bins\": \"mkdir -p bin && cp ../backendv2/index.darwin-arm64.node ./bin/\",\n    \"sync-bins:prod\": \"mkdir -p bin && cp ../beacon-host/target/release/beacon-host ./bin/ && cp ../backend/target/release/backend ./bin/beacon-api && strip ./bin/beacon-host ./bin/beacon-api && chmod +x ./bin/beacon-host ./bin/beacon-api\",\n    \"vite:dev\": \"vite\",\n    \"electron:launch\": \"wait-on -t 30000 http://localhost:5173 && electron ./electron-main.ts\",\n    \"dev\": \"npm run sync-bins && concurrently --kill-others \\\"npm run vite:dev\\\" \\\"npm run electron:launch\\\"\",\n    \"build\": \"vite build && electron-builder\"\n  },\n  \"build\": {\n    \"appId\": \"com.adafaralph.beacon\",\n    \"productName\": \"Beacon\",\n    \"forceCodeSigning\": false,\n    \"directories\": {\n      \"output\": \"dist\"\n    },\n    \"files\": [\n      \"dist/**/*\",\n      \"preload.js\",\n      \"package.json\",\n      \"electron-main.ts\"\n    ],\n    \"extraResources\": [\n      {\n        \"from\": \"bin/target/index.node\",\n        \"to\": \"index.node\"\n      },\n      {\n        \"from\": \"bin/target/cloudflared\",\n        \"to\": \"bin/cloudflared\"\n      },\n      {\n        \"from\": \"db.json\",\n        \"to\": \"servers.json\"\n      }\n    ],\n    \"mac\": {\n      \"target\": [\"dmg\"],\n      \"identity\": null\n    },\n    \"win\": {\n      \"target\": [\"nsis\"]\n    }\n  },\n  \"dependencies\": {\n    \"@heroicons/vue\": \"^2.2.0\",\n    \"axios\": \"^1.13.6\",\n    \"chart.js\": \"^4.5.1\",\n    \"heroicons\": \"^2.2.0\",\n    \"pinia\": \"^3.0.4\",\n    \"sudo-prompt\": \"^9.2.1\",\n    \"vue\": \"^3.5.25\",\n    \"vue-chartjs\": \"^5.3.3\",\n    \"vue-charts\": \"^0.2.1\",\n    \"vue-router\": \"^4.6.3\"\n  },\n  \"devDependencies\": {\n    \"@electron/rebuild\": \"^3.7.1\",\n    \"@tsconfig/node24\": \"^24.0.4\",\n    \"@vitejs/plugin-vue\": \"^6.0.2\",\n    \"@vitejs/plugin-vue-jsx\": \"^5.1.5\",\n    \"@vue/tsconfig\": \"^0.9.1\",\n    \"concurrently\": \"^9.2.1\",\n    \"electron\": \"^41.1.0\",\n    \"electron-builder\": \"^26.8.1\",\n    \"vite\": \"^7.2.4\",\n    \"vite-plugin-vue-devtools\": \"^8.0.5\",\n    \"wait-on\": \"^9.0.4\"\n  }\n}\n
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/../frontendv2/package.json b/../frontendv2/package.json
+--- a/../frontendv2/package.json	(revision be0989fbbe4ccefd028eaf121a29e4c2e34f1d0d)
++++ b/../frontendv2/package.json	(date 1775738775607)
+@@ -26,22 +26,24 @@
+     },
+     "files": [
+       "dist/**/*",
++      "dist/assets/*",
+       "preload.js",
++      "splash.html",
+       "package.json",
+       "electron-main.ts"
+     ],
+     "extraResources": [
+       {
+-        "from": "bin/target/index.node",
+-        "to": "index.node"
++        "from": "./bin/index.darwin-arm64.node",
++        "to": "index.darwin-arm64.node"
+       },
+       {
+-        "from": "bin/target/cloudflared",
++        "from": "./bin/cloudflared",
+         "to": "bin/cloudflared"
+       },
+       {
+-        "from": "db.json",
+-        "to": "servers.json"
++        "from": "./bin/db.json",
++        "to": "db.json"
+       }
+     ],
+     "mac": {
+Index: ../frontendv2/electron-main.ts
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+>import { app, BrowserWindow, ipcMain } from 'electron';\nimport * as path from 'path';\nimport { fileURLToPath } from 'url';\nimport { createRequire } from 'module';\n\n// 1. Manually define __dirname for ES Module scope\n// In ESM, __dirname and __filename are not globally available\nconst __filename: string = fileURLToPath(import.meta.url);\nconst __dirname: string = path.dirname(__filename);\nexport const wait = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));\n// 2. Create a 'require' function for native modules or Rust binaries\n// This is essential if you are calling Rust via N-API or similar\nconst requireNative = createRequire(import.meta.url);\n\n//const rust = requireNative('./bin/index.darwin-arm64.node');\n//console.log('rust binary loaded successfully')\n\n\nlet rust: any;\n\nconst isProd = app.isPackaged;\n\n// Helper to get the correct path regardless of dev/prod\nconst getBinPath = () => {\n  if (isProd) {\n    // Standard location for extraResources in packaged apps\n    return path.join(process.resourcesPath, 'bin', 'index.darwin-arm64.node');\n  } else {\n    // app.getAppPath() usually points to your project root in dev\n    return path.join(app.getAppPath(), 'bin', 'index.darwin-arm64.node');\n  }\n};\n\n\nconst binPath = getBinPath();\n\ntry {\n  rust = requireNative(binPath);\n  console.log('Rust exports:', Object.keys(rust));\n} catch (err) {\n  console.error('Core Logic Error: Failed to load Rust binary.');\n  console.error('Attempted path:', binPath);\n  console.error(err);\n}\n\n\nconsole.log(binPath);\n\n\nconsole.log(rust)\n\n\nfunction registerIpcHandlers() {\n  // Use .handleOnce if you only need it once, or check if already registered\n  ipcMain.handle('startCloudflared', async (event, port) => {\n    console.log(`Starting tunnel on port ${port}`);\n    try {\n      return await rust.startCloudflared(port);\n    } catch (e) {\n      console.error(\"Rust error:\", e);\n      throw e; // This will reject the promise in the frontend\n    }\n  })\n\n\n  ipcMain.handle('stopCloudflared', async () => {\n      try{\n        rust.stopCloudflared();\n\n      }catch (e) {\n        console.error(\"Rust layer error: \", e)\n      }\n  })\n\n  ipcMain.handle('createServer', async (event, data) => {\n    // We extract the fields from 'data' and pass them individually\n\n    const onlineMode = data.online_mode === true || data.online_mode === 'true';\n\n\n    return await rust.createServer(\n      data.id,\n      data.name,\n      data.provider,\n      data.version,\n      parseInt(data.ram_mb) || 3072, // Convert \"3G\" string to a Number\n      data.port,\n      onlineMode,\n    );\n  });\n\n\n  ipcMain.handle('startServer', async (event, payload) => {\n    // 1. Destructure the keys coming from your Vue 'payload' object\n    const { id, bin_dir, ram } = payload;\n\n    // 2. CRITICAL: Log these to your TERMINAL to see which one is missing\n    console.log(\"--- IPC Debug ---\");\n    console.log(\"ID:\", id);\n    console.log(\"Path:\", bin_dir);\n    console.log(\"RAM:\", ram);\n\n    try {\n      // 3. Pass them as INDIVIDUAL arguments, not as one object\n      // Rust signature: spawn_container(id: String, bin_dir: String, ram: u32)\n      return await rust.spawnContainer(\n        id.toString(),\n        bin_dir.toString(),\n        Number(ram)\n      );\n    } catch (e) {\n      console.error(\"Rust bridge crash:\", e);\n      return { error: e.toString() };\n    }\n  });\n\n\n  ipcMain.handle('getServers', async () => {\n    try{\n      return await rust.getServers();\n    }\n    catch (e){\n      console.error(\"Rust error:\", e);\n    }\n  })\n\n  ipcMain.handle('subscribe-to-logs', (event, serverId: string) => {\n    // Call your Rust #[napi] function\n    // The second argument is the ThreadsafeFunction (callback)\n    rust.streamLogs(serverId, (err: any, logLine: string) => {\n      if (err) {\n        console.error(`Log stream error for ${serverId}:`, err);\n        return;\n      }\n\n      // Send the line to the frontend via a unique channel for this server\n      event.sender.send(`logs:${serverId}`, logLine);\n    });\n  });\n\n\n  ipcMain.handle('stopServers', async (event, serverId: string) => {\n    try{\n      return await rust.killContainers();\n    }catch (e){\n      console.error(\"Rust error:\", e);\n    }\n  })\n\n\n}\n\n\nlet mainWindow: BrowserWindow | null = null;\nlet splashWindow: BrowserWindow | null = null;\n\nfunction createWindow(): void {\n  splashWindow = new BrowserWindow({\n    width: 500,\n    height: 300,\n    transparent: true, // Makes the \"liquid glass\" look better if splash.html has rounded corners\n    frame: false,      // No window controls\n    alwaysOnTop: true,\n    webPreferences: {\n      contextIsolation: true,\n    }\n  });\n\n  splashWindow.loadFile(path.join(__dirname, 'splash.html'));\n  splashWindow.center();\n\n  mainWindow = new BrowserWindow({\n    titleBarStyle: 'hidden',\n    show: false,\n    width: 1200,\n    height: 800,\n    webPreferences: {\n      // Ensure the preload path points to the compiled .js file\n      preload: path.join(__dirname, './preload.js'),\n      // Security best practices:\n      contextIsolation: true,\n      nodeIntegration: false,\n    }\n  });\n\n  const cleanupResources = () => {\n    console.log(\"Cleaning up Rust containers...\");\n    try {\n      // This calls your N-API function\n      const result = rust.killContainers();\n      console.log(result);\n    } catch (err) {\n      console.error(\"Failed to kill containers:\", err);\n    }\n  };\n\n  app.on('before-quit', () => {\n    console.log(\"Shutting down... calling Rust cleanup.\");\n    cleanupResources();\n  });\n\n\n  ipcMain.handle('kill-container', async (event, id ) => {\n    try{\n        const result = rust.killContainers(id);\n    }catch (e) {\n      console.error(\"Rust error:\", e);\n    }\n  })\n\n\n  ipcMain.handle('tunnel-connect', async (event,id) => {\n    const result = await rust.clientConnect(id);\n  })\n  if (!isProd) {\n    // Load from the Vite dev server\n    mainWindow.loadURL('http://localhost:5173');\n    mainWindow.webContents.openDevTools();\n  } else {\n    // Load the compiled index.html from the dist folder\n    // __dirname in production usually points to the 'dist-electron' or 'resources' folder\n    mainWindow.loadFile(path.join(__dirname, '../dist/index.html'));\n  }\n\n  mainWindow.once('ready-to-show', async () => {\n    await wait(2000);\n    if (splashWindow) splashWindow.close();\n    mainWindow?.show();\n    mainWindow?.focus();\n\n  });\n\n\n  mainWindow.on('closed', () => {\n    // If this is the only window, quitting will trigger 'before-quit' anyway\n    mainWindow = null;\n  })\n}\n\n// Electron lifecycle management\napp.whenReady().then(() => {\n\n\n  registerIpcHandlers();\n  createWindow();\n\n  app.on('activate', () => {\n\n    if (BrowserWindow.getAllWindows().length === 0) {\n\n      createWindow();\n    }\n  });\n});\n\napp.on('window-all-closed', () => {\n  // On macOS, apps stay open even without windows.\n  // If you want containers to die when the window closes, keep this here.\n  if (process.platform !== 'darwin') {\n    app.quit();\n  }\n});
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/../frontendv2/electron-main.ts b/../frontendv2/electron-main.ts
+--- a/../frontendv2/electron-main.ts	(revision be0989fbbe4ccefd028eaf121a29e4c2e34f1d0d)
++++ b/../frontendv2/electron-main.ts	(date 1775739499719)
+@@ -219,7 +219,7 @@
+   } else {
+     // Load the compiled index.html from the dist folder
+     // __dirname in production usually points to the 'dist-electron' or 'resources' folder
+-    mainWindow.loadFile(path.join(__dirname, '../dist/index.html'));
++    mainWindow.loadFile(path.join(__dirname, './dist/index.html'));
+   }
+ 
+   mainWindow.once('ready-to-show', async () => {
+Index: ../beacon-landing/vite.config.js
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+>import { fileURLToPath, URL } from 'node:url'\n\nimport { defineConfig } from 'vite'\nimport vue from '@vitejs/plugin-vue'\nimport vueDevTools from 'vite-plugin-vue-devtools'\n\n// https://vite.dev/config/\nexport default defineConfig({\n  plugins: [\n    vue(),\n    vueDevTools(),\n  ],\n  resolve: {\n    alias: {\n      '@': fileURLToPath(new URL('./src', import.meta.url))\n    },\n  },\n})\n
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/../beacon-landing/vite.config.js b/../beacon-landing/vite.config.js
+--- a/../beacon-landing/vite.config.js	(revision be0989fbbe4ccefd028eaf121a29e4c2e34f1d0d)
++++ b/../beacon-landing/vite.config.js	(date 1775700279386)
+@@ -6,6 +6,7 @@
+ 
+ // https://vite.dev/config/
+ export default defineConfig({
++  base: './',
+   plugins: [
+     vue(),
+     vueDevTools(),
+Index: ../frontendv2/index.html
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+><!DOCTYPE html>\n<html lang=\"\">\n  <head>\n    <meta charset=\"UTF-8\">\n    <link rel=\"icon\" href=\"/favicon.ico\">\n    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n    <title>Beacon</title>\n  </head>\n  <body>\n    <div id=\"app\"></div>\n    <script type=\"module\" src=\"/src/main.ts\"></script>\n  </body>\n</html>\n\n\n<style>\n    html, body, #app {\n        margin: 0;\n        padding: 0;\n        width: 100%;\n        height: 100vh;\n        overflow: hidden; /* Prevents double scrollbars */\n    }\n</style>
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/../frontendv2/index.html b/../frontendv2/index.html
+--- a/../frontendv2/index.html	(revision be0989fbbe4ccefd028eaf121a29e4c2e34f1d0d)
++++ b/../frontendv2/index.html	(date 1775739745123)
+@@ -5,6 +5,7 @@
+     <link rel="icon" href="/favicon.ico">
+     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+     <title>Beacon</title>
++    <base href="../../../">
+   </head>
+   <body>
+     <div id="app"></div>
+diff --git a/../frontendv2/bin/db.json b/../frontendv2/bin/db.json
+new file mode 100644

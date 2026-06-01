@@ -172,7 +172,7 @@ pub fn stream_logs(id: String, callback: ThreadsafeFunction<String>) -> napi::Re
 
 #[napi]
 pub fn kill_containers() -> napi::Result<String> {
-    let mut count = 0;
+    let count = 0;
 
     // --- STEP 1: Get keys and drop the iterator immediately ---
     let keys: Vec<String> = {
@@ -214,10 +214,10 @@ pub fn kill_containers() -> napi::Result<String> {
 
 
 #[napi]
-pub async fn kill_container(id: String, force: bool) -> napi::Result<String> {
+pub async fn kill_container(id: String, _force: bool) -> napi::Result<String> {
 
 
-    let mut process = PROCESS_REGISTRY.get_mut(&id);
+    let process = PROCESS_REGISTRY.get_mut(&id);
 
     if let Some(mut child) = process {
         if let Some(mut stdin) = child.stdin.take() {

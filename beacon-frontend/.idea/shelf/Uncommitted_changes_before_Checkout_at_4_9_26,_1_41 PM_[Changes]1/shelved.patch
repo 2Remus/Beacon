@@ -1,0 +1,161 @@
+Index: ../frontendv2/src/persistance/cloudflare.ts
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/../frontendv2/src/persistance/cloudflare.ts b/../frontendv2/src/persistance/cloudflare.ts
+new file mode 100644
+--- /dev/null	(date 1775756285455)
++++ b/../frontendv2/src/persistance/cloudflare.ts	(date 1775756285455)
+@@ -0,0 +1,131 @@
++import { fileURLToPath } from 'url';
++import { dirname } from 'path';
++
++// Polyfill __dirname for ES Modules
++const __filename = fileURLToPath(import.meta.url);
++const __dirname = dirname(__filename);
++
++import { tunnel } from 'cloudflared';
++import { ChildProcess, spawn } from 'child_process';
++import { bin } from 'cloudflared';
++// ... rest of your code
++
++interface TunnelStatus {
++  status: 'RUNNING' | 'ERROR' | 'STOPPED';
++  url?: string;
++  child?: ChildProcess | null;
++  error?: string;
++}
++
++interface ConnectionStatus{
++  status: 'RUNNING' | 'ERROR' | 'STOPPED';
++  url?: string;
++  child?: ChildProcess | null;
++  error?: string;
++}
++
++/**
++ * Manages the lifecycle of a Cloudflare Quick Tunnel
++ */
++export class TunnelManager {
++  private activeChild: ChildProcess | null = null;
++
++  async start(port: number): Promise<TunnelStatus> {
++    return new Promise((resolve) => {
++      try {
++        // We use the 'bin' path directly to spawn the process manually
++        // This is exactly like your Rust Command::new()
++        this.activeChild = spawn(bin, [
++          'tunnel',
++          '--url', `http://localhost:${port}`,
++          '--no-autoupdate'
++        ]);
++
++        let urlFound = false;
++
++        // Cloudflare outputs the URL to stderr, not stdout
++        this.activeChild.stderr?.on('data', (data) => {
++          const output = data.toString();
++
++          // Regex to find the .trycloudflare.com URL in the logs
++          const urlMatch = output.match(/https:\/\/[a-z0-9-]+\.trycloudflare\.com/);
++
++          if (urlMatch && !urlFound) {
++            urlFound = true;
++            resolve({
++              status: 'RUNNING',
++              url: urlMatch[0],
++              //child: this.activeChild
++            });
++          }
++        });
++
++        this.activeChild.on('error', (err) => {
++          resolve({ status: 'ERROR', error: err.message });
++        });
++
++        // Safety timeout: if no URL in 15 seconds, fail
++        setTimeout(() => {
++          if (!urlFound) {
++            resolve({ status: 'ERROR', error: 'Tunnel timed out waiting for URL' });
++          }
++        }, 15000);
++
++      } catch (err) {
++        resolve({
++          status: 'ERROR',
++          error: err instanceof Error ? err.message : String(err)
++        });
++      }
++    });
++  }
++
++  stop(): TunnelStatus {
++    if (this.activeChild) {
++      this.activeChild.kill('SIGINT');
++      this.activeChild = null;
++      return { status: 'STOPPED' };
++    }
++    return { status: 'ERROR', error: 'No active tunnel to stop' };
++  }
++
++
++  async connect(remoteUrl: string, localPort: number = 25565): Promise<ConnectionStatus> {
++    return new Promise((resolve) => {
++      try {
++        // mode: 'access tcp' makes your machine the 'receiver'
++        this.activeChild = spawn(bin, [
++          'access',
++          'tcp',
++          '--hostname', remoteUrl,
++          '--listener', `127.0.0.1:${localPort}`
++        ]);
++
++        // Access mode doesn't give a URL back, it just starts listening.
++        // We check if the process stays alive for 2 seconds to confirm success.
++        const startTimer = setTimeout(() => {
++          resolve({
++            status: 'RUNNING',
++            url: `localhost:${localPort}`
++          });
++        }, 2000);
++
++        this.activeChild.on('error', (err) => {
++          clearTimeout(startTimer);
++          resolve({ status: 'ERROR', error: err.message });
++        });
++
++        // If it exits immediately, something is wrong (like the port is taken)
++        this.activeChild.on('exit', (code) => {
++          clearTimeout(startTimer);
++          if (code !== 0) {
++            resolve({ status: 'ERROR', error: `Process exited with code ${code}` });
++          }
++        });
++
++      } catch (err) {
++        resolve({ status: 'ERROR', error: String(err) });
++      }
++    });
++  }
++}
+\ No newline at end of file
+Index: ../frontendv2/src/Pages/connections/pages/connections.vue
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+><script setup>\nimport { ref, onMounted, onUnmounted, watch } from 'vue';\n\nconst tunnelStatus = ref(localStorage.getItem('tunnel_status') || 'offline');\nconst connections = ref(JSON.parse(localStorage.getItem('tunnel_connections') || '[]'));\nconst isUpdating = ref(false);\nconst errorMsg = ref('');\nconst publicUrl = ref(localStorage.getItem('tunnel_url') || '');\n\n// Helper to extract the URL from the messy Cloudflare log string\nconst cleanUrl = (rawUrl) => {\n  if (!rawUrl) return '';\n  const match = rawUrl.match(/https:\\/\\/[a-z0-9-]+\\.trycloudflare\\.com/);\n  return match ? match[0] : rawUrl;\n};\n\n// Persistence Watchers: Save basic info to localStorage whenever they change\nwatch([tunnelStatus, publicUrl, connections], ([newStatus, newUrl, newConns]) => {\n  localStorage.setItem('tunnel_status', newStatus);\n  localStorage.setItem('tunnel_url', newUrl);\n  localStorage.setItem('tunnel_connections', JSON.stringify(newConns));\n});\n\nconst toggleTunnel = async () => {\n  isUpdating.value = true;\n  if (tunnelStatus.value === 'offline' || tunnelStatus.value === 'error') {\n    try {\n      const res = await window.electron.startCloudflare(25565);\n\n      console.log('Tunnel Response:', res);\n\n      tunnelStatus.value = res.status; // \"RUNNING\"\n      publicUrl.value = cleanUrl(res.url);\n      connections.value = res.connections || [];\n      errorMsg.value = '';\n    } catch (err) {\n      console.error('Tunnel Error:', err);\n      errorMsg.value = \"Failed to launch sidecar binary.\";\n      tunnelStatus.value = 'error';\n    } finally {\n      isUpdating.value = false;\n    }\n  }\n  else {\n    try {\n      await window.electron.stopCloudflare();\n      tunnelStatus.value = \"offline\";\n      publicUrl.value = \"\";\n      connections.value = [];\n    } catch (err) {\n      console.error('Tunnel Error:', err);\n    } finally {\n      isUpdating.value = false;\n    }\n  }\n};\n\nconst fetchTunnelData = async () => {\n  if (tunnelStatus.value !== 'RUNNING') return;\n\n  try {\n    const response = await fetch('/api/v1/tunnel/status');\n    if (response.ok) {\n      const data = await response.json();\n      connections.value = data.active_connections;\n    }\n  } catch (err) {\n    // Silently fail\n  }\n};\n\nlet interval;\nonMounted(async () => {\n  // Persistence Handshake: Check if the sidecar is already running in the background\n  try {\n    if (window.electron.getTunnelStatus) {\n      const current = await window.electron.getTunnelStatus();\n      if (current && current.status === 'RUNNING') {\n        tunnelStatus.value = 'RUNNING';\n        publicUrl.value = cleanUrl(current.url);\n        connections.value = current.connections || [];\n      } else if (current && current.status === 'offline') {\n        tunnelStatus.value = 'offline';\n        publicUrl.value = '';\n      }\n    }\n  } catch (e) {\n    console.warn(\"Handshake failed, falling back to local state.\");\n  }\n\n  interval = setInterval(fetchTunnelData, 5000);\n});\n\nonUnmounted(() => clearInterval(interval));\n</script>\n\n<template>\n  <div class=\"connections-container\">\n    <header class=\"status-card\" :class=\"{ 'active': tunnelStatus === 'RUNNING', 'error': tunnelStatus === 'error' }\">\n      <div class=\"info\">\n        <h1>Cloudflare Tunnel</h1>\n        <div v-if=\"tunnelStatus === 'RUNNING'\">\n          <p class=\"badge\">● Online</p>\n          <code class=\"url-display\">{{ publicUrl }}</code>\n        </div>\n        <p v-else class=\"badge offline\">○ Offline</p>\n      </div>\n      <button @click=\"toggleTunnel\" :disabled=\"isUpdating\" :class=\"{ 'btn-stop': tunnelStatus === 'RUNNING' }\">\n        {{ isUpdating ? 'Processing...' : (tunnelStatus === 'RUNNING' ? 'Disconnect' : 'Connect') }}\n      </button>\n    </header>\n\n    <div v-if=\"errorMsg\" class=\"error-banner\">{{ errorMsg }}</div>\n\n    <section class=\"connections-list\">\n      <h2>Active Edges ({{ connections.length }})</h2>\n      <table>\n        <thead>\n        <tr>\n          <th>Node</th>\n          <th>Type</th>\n          <th>Status</th>\n        </tr>\n        </thead>\n        <tbody>\n        <tr v-for=\"(conn, index) in connections\" :key=\"index\">\n          <td>\n            <div class=\"user-cell\">\n              <span class=\"icon\">\uD83C\uDF10</span>\n              {{ conn }}\n            </div>\n          </td>\n          <td><code>Anycast</code></td>\n          <td><span class=\"status-text\">Connected</span></td>\n        </tr>\n        <tr v-if=\"connections.length === 0\">\n          <td colspan=\"3\" class=\"empty\">No active connections. Click connect to initialize.</td>\n        </tr>\n        </tbody>\n      </table>\n    </section>\n  </div>\n</template>\n\n<style scoped>\n.connections-container {\n  padding: 2rem;\n  color: #e2e8f0;\n}\n\n.status-card {\n  display: flex;\n  justify-content: space-between;\n  align-items: center;\n  padding: 1.5rem;\n  border-radius: 12px;\n  background: #1e293b;\n  border-left: 6px solid #64748b;\n  margin-bottom: 2rem;\n}\n\n.status-card.active { border-left-color: #10b981; }\n.status-card.error { border-left-color: #ef4444; }\n\n.badge {\n  font-weight: bold;\n  color: #10b981;\n  margin-top: 0.5rem;\n}\n\nbutton {\n  background: #3b82f6;\n  color: white;\n  border: none;\n  padding: 0.75rem 1.5rem;\n  border-radius: 8px;\n  cursor: pointer;\n  font-weight: 600;\n  transition: opacity 0.2s;\n}\n\nbutton:disabled { opacity: 0.5; cursor: not-allowed; }\n\ntable {\n  width: 100%;\n  border-collapse: collapse;\n  background: #0f172a;\n  border-radius: 8px;\n  overflow: hidden;\n}\n\nth { text-align: left; padding: 1rem; background: #1e293b; color: #94a3b8; }\ntd { padding: 1rem; border-top: 1px solid #1e293b; }\n\n.user-cell { display: flex; align-items: center; gap: 0.75rem; }\n.user-cell img { border-radius: 50%; width: 32px; height: 32px; }\n\n.error-banner {\n  background: #7f1d1d;\n  padding: 1rem;\n  border-radius: 8px;\n  margin-bottom: 1rem;\n}\n\n.url-display {\n  display: block;\n  margin-top: 10px;\n  background: rgba(0, 0, 0, 0.3);\n  padding: 8px 12px;\n  border-radius: 6px;\n  color: #3b82f6;\n  font-family: 'Fira Code', monospace;\n  font-size: 0.85rem;\n  border: 1px solid rgba(59, 130, 246, 0.2);\n}\n\n.badge.offline {\n  color: #64748b;\n}\n\n.btn-stop {\n  background: #ef4444 !important;\n}\n\n.status-text {\n  color: #10b981;\n  font-size: 0.8rem;\n  text-transform: uppercase;\n  font-weight: bold;\n}\n\n.icon {\n  font-size: 1.2rem;\n}\n\n.empty { text-align: center; padding: 3rem; color: #64748b; }\n</style>
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/../frontendv2/src/Pages/connections/pages/connections.vue b/../frontendv2/src/Pages/connections/pages/connections.vue
+--- a/../frontendv2/src/Pages/connections/pages/connections.vue	(revision a3a2bd5c0583293a39c13096ddca8aa685eed07b)
++++ b/../frontendv2/src/Pages/connections/pages/connections.vue	(date 1775754343442)
+@@ -31,7 +31,7 @@
+ 
+       tunnelStatus.value = res.status; // "RUNNING"
+       publicUrl.value = cleanUrl(res.url);
+-      connections.value = res.connections || [];
++      //connections.value = res.connections || [];
+       errorMsg.value = '';
+     } catch (err) {
+       console.error('Tunnel Error:', err);

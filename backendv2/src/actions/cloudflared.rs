@@ -1,4 +1,3 @@
-use std::env;
 use std::io::{BufRead, BufReader};
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
@@ -10,7 +9,6 @@ use lazy_static::lazy_static;
 use crate::get_resource_path;
 use crate::models::Cloudflared::cloudflaredRespone;
 use glob::glob;
-use log::Level::Error;
 
 lazy_static! {
     static ref ACTIVE_TUNNEL: Mutex<Option<Child>> = Mutex::new(None);
@@ -60,7 +58,7 @@ pub async fn get_bin(data_dir: String) -> napi::Result<String> {
     let client = reqwest::Client::new();
 
     // 3. Fetch Release Info
-    let release_info = client
+    let _release_info = client
         .get("https://api.github.com/repos/cloudflare/cloudflared/releases/latest")
         .header("User-Agent", "Beacon-App")
         .send()
@@ -154,7 +152,7 @@ pub async fn start_cloudflared(port: u32, data_dir: String) -> napi::Result<clou
     })
 }
 #[napi]
-pub fn stop_cloudflared(env: Env) -> napi::Result<String> {
+pub fn stop_cloudflared(_env: Env) -> napi::Result<String> {
     let mut lock = ACTIVE_TUNNEL.lock().unwrap();
 
     if let Some(mut child) = lock.take() {

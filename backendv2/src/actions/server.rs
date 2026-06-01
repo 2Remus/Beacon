@@ -1,10 +1,6 @@
-use std::{env, fs};
-use std::fs::File;
-use std::io::Cursor;
+use std::fs;
 use std::path::PathBuf;
-use std::process::Command;
 use napi::Error;
-use napi::threadsafe_function::{ThreadsafeFunction, ThreadsafeFunctionCallMode};
 use napi_derive::napi;
 use reqwest::Client;
 use serde_json::Value;
@@ -14,8 +10,6 @@ use crate::get_resource_path;
 use crate::database::add_server::add_server;
 use crate::models::container::ContainerConfig;
 use crate::models::ServerStorage::Provider;
-use tokio::fs::File as AsyncFile;
-use zip::ZipArchive;
 use crate::database::server_import::server_import;
 //use tokio::io::AsyncWriteExt;
 
@@ -34,6 +28,8 @@ pub async fn create_server(
 
     let jar_path = ensure_jar_exists(&provider, &version, data_dir.clone()).await?;
 
+
+
     let container_config = ContainerConfig {
         server_id: id.clone(), // Clone here so we can use 'id' again later
         jar_path: jar_path.to_string_lossy().into_owned(),
@@ -51,8 +47,8 @@ pub async fn create_server(
         name,
         version,
         port: Some(port),
-        provider: provider, 
-        ram: Some(ram_mb),        
+        provider: provider,
+        ram: Some(ram_mb),
         world: None,
         instance_path: container_path.to_string_lossy().to_string(),
         status: "stopped".to_string(),
@@ -99,7 +95,7 @@ async fn import_server(
     name: String,
     version: String,
     provider: Provider,
-    online_mode: bool,
+    _online_mode: bool,
     file_path:String,
     data_dir: String,
 
@@ -111,6 +107,7 @@ async fn import_server(
 
     let jar_path = ensure_jar_exists(&provider, &version, data_dir.clone()).await?;
 
+    println!("called import server");
 
 
     let config = ContainerConfig {
@@ -119,9 +116,13 @@ async fn import_server(
         ..Default:: default()
     };
 
+    println!("config ready");
+
     let container_path = create_container_env(config, data_dir.clone());
 
-    let servers: MinecraftServer {
+    print!("container pathe ready");
+
+    let servers =  MinecraftServer {
         id: id.clone(),
         name,
         version,
@@ -133,8 +134,11 @@ async fn import_server(
         ..Default::default()
     };
 
+
+    println!("server struct ready");
     let db_path = std::path::PathBuf::from(data_dir.clone()).join("db.json");
-    server_import(&server, container_path?, data_dir, db_path.clone()).await?;
+    println!("addign to db");
+    server_import(&servers, container_path?, data_dir, db_path.clone()).await?;
 
     Ok(())
 
@@ -258,5 +262,3 @@ async fn ensure_jar_exists(provider: &Provider, version: &str, path: String) -> 
 
     Ok(target_path)
 }
-
-

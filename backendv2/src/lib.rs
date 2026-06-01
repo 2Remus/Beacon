@@ -3,12 +3,7 @@ mod actions;
 mod containerizer;
 mod database;
 
-use std::env;
-use std::fs;
-use std::path::{ PathBuf, Path};
-use std::process::{Command, Stdio};
-use napi_derive::napi;
-use actions::nginx::start_nginx;
+use std::path::PathBuf;
 pub use actions::server::*;
 
 fn get_resource_path(data_dir: String) -> napi::Result<PathBuf> {

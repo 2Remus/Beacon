@@ -1,10 +1,7 @@
 use std::fs;
-use std::fs::File;
-use std::io::{BufReader, BufWriter};
 use std::path::PathBuf;
 use napi::Error;
-use serde_json::Value;
-use crate::models::ServerStorage::{ServerRegistry, MinecraftServer};
+use crate::models::ServerStorage::MinecraftServer;
 
 pub fn add_server(new_server: &MinecraftServer, path: PathBuf) -> napi::Result<()> {
     // 1. Read and Close immediately
