@@ -1,28 +1,26 @@
-import { app, BrowserWindow, ipcMain, dialog } from 'electron';
-import * as path from 'path';
-import { fileURLToPath } from 'url';
-import { createRequire } from 'module';
+import { app, BrowserWindow, ipcMain, dialog } from 'electron'
+import * as path from 'path'
+import { fileURLToPath } from 'url'
+import { createRequire } from 'module'
 import mdns from 'multicast-dns'
-const dns = mdns();
-import { session } from 'electron';
+const dns = mdns()
+import { session } from 'electron'
 
 // 1. Manually define __dirname for ES Module scope
 // In ESM, __dirname and __filename are not globally available
-const __filename: string = fileURLToPath(import.meta.url);
-const __dirname: string = path.dirname(__filename);
-export const wait = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+const __filename: string = fileURLToPath(import.meta.url)
+const __dirname: string = path.dirname(__filename)
+export const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
 // 2. Create a 'require' function for native modules or Rust binaries
 // This is essential if you are calling Rust via N-API or similar
-const requireNative = createRequire(import.meta.url);
+const requireNative = createRequire(import.meta.url)
 
 //const rust = requireNative('./bin/index.darwin-arm64.node');
 //console.log('rust binary loaded successfully')
 
+let rust: any
 
-let rust: any;
-
-const isProd = app.isPackaged;
-
+const isProd = app.isPackaged
 
 export function enableBeaconLocalName() {
   dns.on('query', (query) => {
@@ -30,80 +28,72 @@ export function enableBeaconLocalName() {
       // We respond to both "beacon.local" and "beacon" (for Windows LLMNR fallback)
       if (q.name === 'beacon.local' || q.name === 'beacon') {
         dns.respond({
-          answers: [{
-            name: q.name,
-            type: 'A',
-            ttl: 300,
-            data: '127.0.0.1' // Points back to the local bridge
-          }]
-        });
+          answers: [
+            {
+              name: q.name,
+              type: 'A',
+              ttl: 300,
+              data: '127.0.0.1', // Points back to the local bridge
+            },
+          ],
+        })
       }
-    });
-  });
+    })
+  })
 }
-
-
-
 
 // Helper to get the correct path regardless of dev/prod
 const getBinPath = () => {
   if (isProd) {
     // Standard location for extraResources in packaged apps
-    return path.join(process.resourcesPath, 'bin', 'index.darwin-x64.node');
+    return path.join(process.resourcesPath, 'bin', 'index.darwin-arm64.node')
   } else {
     // app.getAppPath() usually points to your project root in dev
-    return path.join(app.getAppPath(), 'bin', 'index.darwin-x64.node');
+    return path.join(app.getAppPath(), 'bin', 'index.darwin-arm64.node')
   }
-};
-
-
-const binPath = getBinPath();
-
-try {
-  rust = requireNative(binPath);
-  console.log('Rust exports:', Object.keys(rust));
-} catch (err) {
-  console.error('Core Logic Error: Failed to load Rust binary.');
-  console.error('Attempted path:', binPath);
-  console.error(err);
 }
 
+const binPath = getBinPath()
 
-console.log(binPath);
+try {
+  rust = requireNative(binPath)
+  console.log('Rust exports:', Object.keys(rust))
+} catch (err) {
+  console.error('Core Logic Error: Failed to load Rust binary.')
+  console.error('Attempted path:', binPath)
+  console.error(err)
+}
 
+console.log(binPath)
 
 console.log(rust)
-
 
 function registerIpcHandlers() {
   // Use .handleOnce if you only need it once, or check if already registered
   ipcMain.handle('startCloudflared', async (event, port) => {
-    console.log(`Starting tunnel on port ${port}`);
-    const data_dir = app.getPath('userData').toString();
+    console.log(`Starting tunnel on port ${port}`)
+    const data_dir = app.getPath('userData').toString()
     try {
-      return await rust.startCloudflared(port, data_dir);
+      return await rust.startCloudflared(port, data_dir)
     } catch (e) {
-      console.error("Rust error:", e);
-      throw e; // This will reject the promise in the frontend
+      console.error('Rust error:', e)
+      throw e // This will reject the promise in the frontend
     }
   })
 
-
   ipcMain.handle('stopCloudflared', async () => {
     try {
-      rust.stopCloudflared();
-
+      rust.stopCloudflared()
     } catch (e) {
-      console.error("Rust layer error: ", e)
+      console.error('Rust layer error: ', e)
     }
   })
 
   ipcMain.handle('createServer', async (event, data) => {
     // We extract the fields from 'data' and pass them individually
 
-    const onlineMode = data.online_mode === true || data.online_mode === 'true';
-    const data_dir = app.getPath('userData').toString();
-
+    const onlineMode = data.online_mode === true || data.online_mode === 'true'
+    const data_dir = app.getPath('userData').toString()
 
     return await rust.createServer(
       data.id,
@@ -113,57 +103,51 @@ function registerIpcHandlers() {
       parseInt(data.ram_mb) || 3072, // Convert "3G" string to a Number
       data.port,
       onlineMode,
-      data_dir
-    );
-  });
-
+      data_dir,
+    )
+  })
 
   ipcMain.handle('startServer', async (event, payload) => {
     // 1. Destructure the keys coming from your Vue 'payload' object
-    const { id, bin_dir, ram } = payload;
+    const { id, bin_dir, ram } = payload
 
     // 2. CRITICAL: Log these to your TERMINAL to see which one is missing
-    console.log("--- IPC Debug ---");
-    console.log("ID:", id);
-    console.log("Path:", bin_dir);
-    console.log("RAM:", ram);
+    console.log('--- IPC Debug ---')
+    console.log('ID:', id)
+    console.log('Path:', bin_dir)
+    console.log('RAM:', ram)
 
     try {
       // 3. Pass them as INDIVIDUAL arguments, not as one object
       // Rust signature: spawn_container(id: String, bin_dir: String, ram: u32)
-      return await rust.spawnContainer(
-        id.toString(),
-        bin_dir.toString(),
-        Number(ram)
-      );
+      return await rust.spawnContainer(id.toString(), bin_dir.toString(), Number(ram))
     } catch (e) {
-      console.error("Rust bridge crash:", e);
-      return { error: e.toString() };
+      console.error('Rust bridge crash:', e)
+      return { error: e.toString() }
     }
-  });
-
-  ipcMain.handle('open-zip', async () => {
-  const result = await dialog.showOpenDialog({
-    properties: ['openFile'],
-    filters: [
-      { name: 'Zip Files', extensions: ['zip'] } // Restrict to zips
-    ]
   })
 
-  if (!result.canceled && result.filePaths.length > 0) {
-    return result.filePaths[0] // Returns the absolute string path: "C:\path\to\file.zip"
-  }
-  return null
+  ipcMain.handle('open-zip', async () => {
+    const result = await dialog.showOpenDialog({
+      properties: ['openFile'],
+      filters: [
+        { name: 'Zip Files', extensions: ['zip'] }, // Restrict to zips
+      ],
+    })
+
+    if (!result.canceled && result.filePaths.length > 0) {
+      return result.filePaths[0] // Returns the absolute string path: "C:\path\to\file.zip"
+    }
+    return null
   })
 
   ipcMain.handle('getServers', async () => {
-    const data_dir = app.getPath('userData').toString();
+    const data_dir = app.getPath('userData').toString()
     console.log(data_dir)
     try {
-      return await rust.getServers(data_dir);
-    }
-    catch (e) {
-      console.error("Rust error:", e);
+      return await rust.getServers(data_dir)
+    } catch (e) {
+      console.error('Rust error:', e)
     }
   })
 
@@ -172,66 +156,60 @@ function registerIpcHandlers() {
     // The second argument is the ThreadsafeFunction (callback)
     rust.streamLogs(serverId, (err: any, logLine: string) => {
       if (err) {
-        console.error(`Log stream error for ${serverId}:`, err);
-        return;
+        console.error(`Log stream error for ${serverId}:`, err)
+        return
       }
 
       // Send the line to the frontend via a unique channel for this server
-      event.sender.send(`logs:${serverId}`, logLine);
-    });
-  });
-
+      event.sender.send(`logs:${serverId}`, logLine)
+    })
+  })
 
   ipcMain.handle('stopServers', async (event, serverId: string) => {
     try {
-      return await rust.killContainers();
+      return await rust.killContainers()
     } catch (e) {
-      console.error("Rust error:", e);
+      console.error('Rust error:', e)
     }
   })
 
-  ipcMain.handle('import-server', async(event, data) => {
-    const onlineMode = data.online_mode === true || data.online_mode === 'true';
-    const data_dir = app.getPath('userData').toString();
-    console.log(          
-          data
-)
-    try{
+  ipcMain.handle('import-server', async (event, data) => {
+    const onlineMode = data.online_mode === true || data.online_mode === 'true'
+    const data_dir = app.getPath('userData').toString()
+    console.log(data)
+    try {
       return await rust.importServer(
-          data.id,
-          data.name,
-          data.version,
-          data.provider,
-          onlineMode,
-          data.path,
-          data_dir,
-        )
-    } catch(e){
-      console.error("Rust error: ",e )
+        data.id,
+        data.name,
+        data.version,
+        data.provider,
+        onlineMode,
+        data.path,
+        data_dir,
+      )
+    } catch (e) {
+      console.error('Rust error: ', e)
     }
-
   })
-
 }
 
-
-let mainWindow: BrowserWindow | null = null;
-let splashWindow: BrowserWindow | null = null;
+let mainWindow: BrowserWindow | null = null
+let splashWindow: BrowserWindow | null = null
 
 function createWindow(): void {
   splashWindow = new BrowserWindow({
     width: 500,
     height: 300,
     transparent: true, // Makes the "liquid glass" look better if splash.html has rounded corners
-    frame: false,      // No window controls
+    frame: false, // No window controls
     alwaysOnTop: true,
     webPreferences: {
       contextIsolation: true,
-    }
-  });
+    },
+  })
 
-  splashWindow.loadFile(path.join(__dirname, './splash.html'));
-  splashWindow.center();
+  splashWindow.loadFile(path.join(__dirname, './splash.html'))
+  splashWindow.center()
 
   mainWindow = new BrowserWindow({
     titleBarStyle: 'hidden',
@@ -244,92 +222,80 @@ function createWindow(): void {
       // Security best practices:
       contextIsolation: true,
       nodeIntegration: false,
-    }
-  });
+    },
+  })
 
   const cleanupResources = () => {
-    console.log("Cleaning up Rust containers...");
+    console.log('Cleaning up Rust containers...')
     try {
       // This calls your N-API function
-      const result = rust.killContainers();
-      console.log(result);
+      const result = rust.killContainers()
+      console.log(result)
     } catch (err) {
-      console.error("Failed to kill containers:", err);
+      console.error('Failed to kill containers:', err)
     }
-  };
-
-
-
+  }
 
   app.on('before-quit', () => {
-    console.log("Shutting down... calling Rust cleanup.");
-    cleanupResources();
-  });
-
+    console.log('Shutting down... calling Rust cleanup.')
+    cleanupResources()
+  })
 
   ipcMain.handle('kill-container', async (event, id) => {
     try {
-      const result = rust.killContainers(id);
+      const result = rust.killContainers(id)
     } catch (e) {
-      console.error("Rust error:", e);
+      console.error('Rust error:', e)
     }
   })
 
-
   ipcMain.handle('tunnel-connect', async (event, url) => {
-    const data_dir = app.getPath('userData').toString();
-    const result = await rust.clientConnect(url, data_dir);
+    const data_dir = app.getPath('userData').toString()
+    const result = await rust.clientConnect(url, data_dir)
   })
-
-
 
   if (!isProd) {
     // Load from the Vite dev server
-    mainWindow.loadURL('http://localhost:5173');
-    mainWindow.webContents.openDevTools();
+    mainWindow.loadURL('http://localhost:5173')
+    mainWindow.webContents.openDevTools()
   } else {
     // Load the compiled index.html from the dist folder
     // __dirname in production usually points to the 'dist-electron' or 'resources' folder
-    mainWindow.loadFile(path.join(__dirname, './dist/index.html'));
+    mainWindow.loadFile(path.join(__dirname, './dist/index.html'))
   }
 
   mainWindow.once('ready-to-show', async () => {
-    await wait(2000);
-    if (splashWindow) splashWindow.close();
-    mainWindow?.show();
-    mainWindow?.focus();
-
-  });
-
+    await wait(2000)
+    if (splashWindow) splashWindow.close()
+    mainWindow?.show()
+    mainWindow?.focus()
+  })
 
   mainWindow.on('closed', () => {
-    session.defaultSession.clearStorageData();
+    session.defaultSession.clearStorageData()
     // If this is the only window, quitting will trigger 'before-quit' anyway
-    mainWindow = null;
+    mainWindow = null
   })
 }
 
 // Electron lifecycle management
 app.whenReady().then(() => {
-
   enableBeaconLocalName()
-  registerIpcHandlers();
-  createWindow();
+  registerIpcHandlers()
+  createWindow()
 
   app.on('activate', () => {
-
     if (BrowserWindow.getAllWindows().length === 0) {
-
-      createWindow();
+      createWindow()
     }
-  });
-});
+  })
+})
 
 app.on('window-all-closed', () => {
   // On macOS, apps stay open even without windows.
   // If you want containers to die when the window closes, keep this here.
-  session.defaultSession.clearStorageData();
+  session.defaultSession.clearStorageData()
   if (process.platform !== 'darwin') {
-    app.quit();
+    app.quit()
   }
-});
+})
