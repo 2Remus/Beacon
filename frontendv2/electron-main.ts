@@ -176,7 +176,7 @@ function registerIpcHandlers() {
   ipcMain.handle('import-server', async (event, data) => {
     const onlineMode = data.online_mode === true || data.online_mode === 'true'
     const data_dir = app.getPath('userData').toString()
-    console.log(data)
+    console.log(data, data_dir)
     try {
       return await rust.importServer(
         data.id,
