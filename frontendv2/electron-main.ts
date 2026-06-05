@@ -211,11 +211,14 @@ function createWindow(): void {
   splashWindow.loadFile(path.join(__dirname, './splash.html'))
   splashWindow.center()
 
+  const shouldHideTitleBar = process.platform === 'win32' || process.platform === 'darwin'
+
   mainWindow = new BrowserWindow({
-    titleBarStyle: 'hidden',
+    titleBarStyle: shouldHideTitleBar ? 'hidden' : 'default',
     show: false,
     width: 1200,
     height: 800,
+    closable: true,
     webPreferences: {
       // Ensure the preload path points to the compiled .js file
       preload: path.join(__dirname, './preload.js'),
