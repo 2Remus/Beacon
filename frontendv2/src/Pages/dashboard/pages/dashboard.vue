@@ -38,7 +38,7 @@ const store = window.__BEACON_STORE__
 const isLoading = ref(true)
 const error = ref(null)
 const instances = ref([])
-const currentView = ref('import')
+const currentView = ref('grid')
 const activeInstance = ref(null)
 const activeMenuId = ref(null)
 const isDeploying = ref(false)
@@ -88,6 +88,10 @@ watch(selectedType, (newType) => {
         newInstanceVersion.value = compatibilityMap[newType][0]
     }
 })
+
+const showImport = () => {
+    currentView.value = 'import'
+}
 
 const logs = computed(() => {
     if (!activeInstance.value) return []
@@ -461,9 +465,14 @@ onUnmounted(() => {
                     <h1>Cloud Instances</h1>
                     <p>Project Beacon / <span>SVG-North Cluster</span></p>
                 </div>
-                <button class="primary-btn sparkle-hover" @click="isCreating = true">
-                    <span class="plus">✦</span> New Instance
-                </button>
+                <div class="header-actions" style="display: flex; gap: 12px">
+                    <button class="btn-secondary" @click="showImport">
+                        <span class="icon">📥</span> Import Server
+                    </button>
+                    <button class="primary-btn sparkle-hover" @click="isCreating = true">
+                        <span class="plus">✦</span> New Instance
+                    </button>
+                </div>
             </header>
 
             <div v-if="isLoading" class="status-msg">Synchronizing Cluster Data...</div>
@@ -539,7 +548,9 @@ onUnmounted(() => {
                     <div class="plus-icon">✦</div>
                     <div class="create-text">
                         <h3>Deploy Instance</h3>
-                        <p>Initialize a new node</p>
+                        <p href="#" class="import-text" @click="showImport">
+                            Initialize a new node
+                        </p>
                     </div>
                 </div>
             </div>
@@ -847,6 +858,10 @@ h1 {
 }
 .menu-item.delete:hover {
     background: #fff1f0;
+}
+
+.import-text {
+    text-decoration: underline;
 }
 
 .card {
