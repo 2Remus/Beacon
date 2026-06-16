@@ -10,7 +10,7 @@
     "node": ">=20.19.0"
   },
   "scripts": {
-    "sync-bins": "mkdir -p bin && cp ../backendv2/index.darwin-arm64.node ./bin/",
+    "sync-bins": "mkdir -p bin && cp ../backendv2/index.linux-x64-gnu.node ./bin/",
     "sync-bins:prod": "mkdir -p bin && cp ../beacon-host/target/release/beacon-host ./bin/ && cp ../backend/target/release/backend ./bin/beacon-api && strip ./bin/beacon-host ./bin/beacon-api && chmod +x ./bin/beacon-host ./bin/beacon-api",
     "vite:dev": "vite",
     "electron:launch": "wait-on -t 30000 http://localhost:5173 && electron ./electron-main.ts",

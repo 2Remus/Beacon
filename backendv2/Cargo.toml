@@ -8,6 +8,12 @@ edition = "2021"
 napi = { version = "2.16", features = ["async", "tokio_rt"] }
 napi-derive = "2.16"
 
+#p2p stuff testing
+libp2p = { version = "0.54.0", features = ["tokio", "tcp", "noise", "yamux", "macros"] }
+libp2p-stream = "0.2.0-alpha"
+tokio-util = { version = "0.7", features = ["compat"] }
+futures = "0.3"
+
 # Async Runtime - Ensure macros and full runtime are present for reqwest/bollard
 tokio = { version = "1.38", features = ["fs", "rt-multi-thread", "macros"] }
 
