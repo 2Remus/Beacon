@@ -1,36 +1,34 @@
-use std::collections::HashMap;
-use std::path::{Path, PathBuf};
 use crate::get_resource_path;
-use std::{fs, thread};
-use std::process::{Child, Command, Stdio};
+use std::collections::HashMap;
 use std::io::{BufRead, BufReader, Write};
+use std::path::{Path, PathBuf};
+use std::process::{Child, Command, Stdio};
+use std::{fs, thread};
 
-use napi_derive::napi;
-use std::sync::Mutex;   
-use lazy_static::lazy_static;
-use napi::{Error,Result};
-use napi::threadsafe_function::{ThreadsafeFunction, ThreadsafeFunctionCallMode};
-use crate::models::container::ContainerConfig;
+use crate::actions::connections::p2p_host;
 use crate::containerizer::containers::SpawnResult;
+use crate::models::container::ContainerConfig;
 use dashmap::DashMap;
+use lazy_static::lazy_static;
+use napi::threadsafe_function::{ThreadsafeFunction, ThreadsafeFunctionCallMode};
+use napi::{Error, Result};
+use napi_derive::napi;
+use std::sync::Mutex;
 
 #[cfg(unix)]
 use std::os::unix::process::CommandExt;
-
-
-
 
 lazy_static! {
     static ref RUNNING_SERVERS: Mutex<HashMap<String, Child>> = Mutex::new(HashMap::new());
     pub static ref PROCESS_REGISTRY: DashMap<String, Child> = DashMap::new();
 }
 
-
-
 pub fn create_container_env(config: ContainerConfig, path: String) -> napi::Result<PathBuf> {
-    let root = get_resource_path(path)?.join("containers").join(&config.server_id);
+    let root = get_resource_path(path)?
+        .join("containers")
+        .join(&config.server_id);
     let jar_source = Path::new(&config.jar_path);
-    
+
     if !root.exists() {
         fs::create_dir_all(&root)?;
     }
@@ -57,7 +55,10 @@ pub fn create_container_env(config: ContainerConfig, path: String) -> napi::Resu
     properties.push(format!("query.port={}", config.port.unwrap_or(25565)));
     properties.push("server-ip=127.0.0.1".to_string()); // Force local binding for Tunnel security
     properties.push("enable-query=true".to_string());
-    properties.push(format!("online-mode={}", config.online_mode.unwrap_or(false))); //can cause problems should fix later
+    properties.push(format!(
+        "online-mode={}",
+        config.online_mode.unwrap_or(false)
+    )); //can cause problems should fix later
     properties.push("gui=false".to_string());
 
     if config.enable_rcon.unwrap_or(true) {
@@ -74,15 +75,13 @@ pub fn create_container_env(config: ContainerConfig, path: String) -> napi::Resu
     let jvm_args = format!(
         "java -Xmx{}M -Xms{}M -jar server.jar nogui", //for some reason opens a terminal on
         //windows??
-        config.ram_mb.unwrap_or(1024), config.ram_mb.unwrap_or(1024)
+        config.ram_mb.unwrap_or(1024),
+        config.ram_mb.unwrap_or(1024)
     );
     fs::write(root.join("start.sh"), jvm_args)?;
 
     Ok(root)
 }
-
-
-
 
 #[napi]
 pub fn spawn_container(id: String, bin_dir: String, ram: u32) -> Result<SpawnResult> {
@@ -90,12 +89,17 @@ pub fn spawn_container(id: String, bin_dir: String, ram: u32) -> Result<SpawnRes
 
     // 1. Path Guard: Ensure the directory and server.jar actually exist
     if !base_path.exists() {
-        return Err(Error::from_reason(format!("Directory not found: {}", bin_dir)));
+        return Err(Error::from_reason(format!(
+            "Directory not found: {}",
+            bin_dir
+        )));
     }
 
     let jar_path = base_path.join("server.jar");
     if !jar_path.exists() {
-        return Err(Error::from_reason("server.jar missing from instance directory"));
+        return Err(Error::from_reason(
+            "server.jar missing from instance directory",
+        ));
     }
 
     // 2. Command Construction: Explicitly call 'java'
@@ -114,6 +118,7 @@ pub fn spawn_container(id: String, bin_dir: String, ram: u32) -> Result<SpawnRes
         .stdout(Stdio::piped())
         .stderr(Stdio::piped());
 
+    p2p_host();
     // --- Unix (macOS & Linux) Attachment ---
     #[cfg(unix)]
     {
@@ -124,7 +129,6 @@ pub fn spawn_container(id: String, bin_dir: String, ram: u32) -> Result<SpawnRes
 
     let child = cmd.spawn().map_err(|e| Error::from_reason(e.to_string()))?;
 
-
     // 3. Metadata Return
     // We return the PID so the Vue frontend can map this to the UI 'Active' state
     let pid = child.id();
@@ -133,21 +137,27 @@ pub fn spawn_container(id: String, bin_dir: String, ram: u32) -> Result<SpawnRes
 
     Ok(SpawnResult {
         pid,
-        log_path: base_path.join("logs/latest.log").to_string_lossy().into_owned(),
+        log_path: base_path
+            .join("logs/latest.log")
+            .to_string_lossy()
+            .into_owned(),
     })
 }
-
 
 #[napi]
 
 //needs to be studied
 pub fn stream_logs(id: String, callback: ThreadsafeFunction<String>) -> napi::Result<()> {
     // 1. Get the specific server from the parallel registry
-    let mut registry_entry = PROCESS_REGISTRY.get_mut(&id)
+    let mut registry_entry = PROCESS_REGISTRY
+        .get_mut(&id)
         .ok_or_else(|| napi::Error::from_reason(format!("Server {} not found", id)))?;
 
     // 2. Take the stdout handle (ensuring we don't try to take it twice)
-    let stdout = registry_entry.value_mut().stdout.take()
+    let stdout = registry_entry
+        .value_mut()
+        .stdout
+        .take()
         .ok_or_else(|| napi::Error::from_reason("Stdout already attached or missing"))?;
 
     // 3. Spawn a "Watcher Thread" just for this ID
@@ -165,10 +175,6 @@ pub fn stream_logs(id: String, callback: ThreadsafeFunction<String>) -> napi::Re
 
     Ok(())
 }
-
-
-
-
 
 #[napi]
 pub fn kill_containers() -> napi::Result<String> {
@@ -204,19 +210,13 @@ pub fn kill_containers() -> napi::Result<String> {
         }
     }
 
-
-
-
     let msg = format!("Successfully terminated {} active server instances.", count);
     println!("{}", msg); // Print to terminal/console for debugging
     Ok(msg)
 }
 
-
 #[napi]
 pub async fn kill_container(id: String, _force: bool) -> napi::Result<String> {
-
-
     let process = PROCESS_REGISTRY.get_mut(&id);
 
     if let Some(mut child) = process {
@@ -229,7 +229,6 @@ pub async fn kill_container(id: String, _force: bool) -> napi::Result<String> {
             Ok(_) => return Ok("Killed container".to_string()),
             Err(e) => eprintln!("Failed to kill process: {}", e),
         }
-
     }
 
     let message = format!("Successfully terminated {} active server instances.", id);

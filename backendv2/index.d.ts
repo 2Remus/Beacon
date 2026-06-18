@@ -36,6 +36,7 @@ export interface ContainerConfig {
 export declare function startCloudflared(port: number, dataDir: string): Promise<CloudflaredRespone>
 export declare function stopCloudflared(): string
 export declare function clientConnect(url: string, dataDir: string): Promise<string>
+export declare function p2PHost(): Promise<void>
 export declare function startNginx(dataDir: string): string
 export declare function stopNginx(dataDir: string): string
 export declare function createServer(id: string, name: string, provider: Provider, version: string, ramMb: number, port: number, onlineMode: boolean, dataDir: string): Promise<string>
