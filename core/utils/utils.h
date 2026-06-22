@@ -7,7 +7,7 @@
 #include <string_view>
 #include <__filesystem/path.h>
 
-std::string_view ensure_jar_exists(std::string_view path);
+std::string ensure_jar_exists(std::string_view path);
 
 std::filesystem::path get_resource_path(std::string_view path);
 

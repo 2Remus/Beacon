@@ -56,6 +56,7 @@ add_executable(Beacon2_0 main.cpp
         core/servers/add_server.cpp
         core/containers/container.h
         core/utils/utils.cpp
+        core/containers/containers.cpp
 )
 
 target_include_directories(Beacon2_0 PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/interface2/dist")
