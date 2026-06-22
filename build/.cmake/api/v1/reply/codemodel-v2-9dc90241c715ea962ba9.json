@@ -1,0 +1,501 @@
+{
+	"configurations" : 
+	[
+		{
+			"abstractTargets" : 
+			[
+				{
+					"directoryIndex" : 0,
+					"id" : "Git::Git::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-Git__Git-Debug-fb1cc3915e1c44ef88b9.json",
+					"name" : "Git::Git",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 7,
+					"id" : "Threads::Threads::@b95861b2ba384b5171eb",
+					"jsonFile" : "target-Threads__Threads-Debug-c6a2f52f01738d5741be.json",
+					"name" : "Threads::Threads",
+					"projectIndex" : 5
+				},
+				{
+					"directoryIndex" : 7,
+					"id" : "ZLIB::ZLIB::@b95861b2ba384b5171eb",
+					"jsonFile" : "target-ZLIB__ZLIB-Debug-b5e0acd6e03edefe82b0.json",
+					"name" : "ZLIB::ZLIB",
+					"projectIndex" : 5
+				},
+				{
+					"directoryIndex" : 4,
+					"id" : "nlohmann_json::@1f73e43ed239fe3d59ae",
+					"jsonFile" : "target-nlohmann_json-Debug-f0edd2886897030c9958.json",
+					"name" : "nlohmann_json",
+					"projectIndex" : 2
+				},
+				{
+					"directoryIndex" : 3,
+					"id" : "webview_core_headers::@48746d47efa01a0dbf4e",
+					"jsonFile" : "target-webview_core_headers-Debug-d3a319126a938bd654a4.json",
+					"name" : "webview_core_headers",
+					"projectIndex" : 1
+				}
+			],
+			"directories" : 
+			[
+				{
+					"abstractTargetIndexes" : 
+					[
+						0
+					],
+					"build" : ".",
+					"childIndexes" : 
+					[
+						1,
+						4,
+						5
+					],
+					"hasInstallRule" : true,
+					"jsonFile" : "directory-.-Debug-fd6451d79dc282e2f566.json",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.16"
+					},
+					"projectIndex" : 0,
+					"source" : ".",
+					"targetIndexes" : 
+					[
+						0
+					]
+				},
+				{
+					"build" : "_deps/webview-build",
+					"childIndexes" : 
+					[
+						2,
+						3
+					],
+					"jsonFile" : "directory-_deps.webview-build-Debug-519b68e62281b4a4660c.json",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.16"
+					},
+					"parentIndex" : 0,
+					"projectIndex" : 1,
+					"source" : "build/_deps/webview-src"
+				},
+				{
+					"build" : "_deps/webview-build/compatibility",
+					"jsonFile" : "directory-_deps.webview-build.compatibility-Debug-84fbcfe597e4fb5c1ece.json",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.16"
+					},
+					"parentIndex" : 1,
+					"projectIndex" : 1,
+					"source" : "build/_deps/webview-src/compatibility"
+				},
+				{
+					"abstractTargetIndexes" : 
+					[
+						4
+					],
+					"build" : "_deps/webview-build/core",
+					"jsonFile" : "directory-_deps.webview-build.core-Debug-5bad331f7c0dd0d9b462.json",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.16"
+					},
+					"parentIndex" : 1,
+					"projectIndex" : 1,
+					"source" : "build/_deps/webview-src/core",
+					"targetIndexes" : 
+					[
+						8,
+						9
+					]
+				},
+				{
+					"abstractTargetIndexes" : 
+					[
+						3
+					],
+					"build" : "_deps/json-build",
+					"jsonFile" : "directory-_deps.json-build-Debug-14afed600c2fa4da11bc.json",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.5"
+					},
+					"parentIndex" : 0,
+					"projectIndex" : 2,
+					"source" : "build/_deps/json-src"
+				},
+				{
+					"build" : "_deps/cpr-build",
+					"childIndexes" : 
+					[
+						6,
+						7,
+						12,
+						13
+					],
+					"hasInstallRule" : true,
+					"jsonFile" : "directory-_deps.cpr-build-Debug-3f9d71e996e95be57e8f.json",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.15"
+					},
+					"parentIndex" : 0,
+					"projectIndex" : 3,
+					"source" : "build/_deps/cpr-src"
+				},
+				{
+					"build" : "_deps/zlib-build",
+					"hasInstallRule" : true,
+					"jsonFile" : "directory-_deps.zlib-build-Debug-d88c8209f59339de62ec.json",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.5.1"
+					},
+					"parentIndex" : 5,
+					"projectIndex" : 4,
+					"source" : "build/_deps/zlib-src",
+					"targetIndexes" : 
+					[
+						10
+					]
+				},
+				{
+					"abstractTargetIndexes" : 
+					[
+						1,
+						2
+					],
+					"build" : "_deps/curl-build",
+					"childIndexes" : 
+					[
+						8,
+						11
+					],
+					"hasInstallRule" : true,
+					"jsonFile" : "directory-_deps.curl-build-Debug-3446a9c4c1f7f903d0fb.json",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.7"
+					},
+					"parentIndex" : 5,
+					"projectIndex" : 5,
+					"source" : "build/_deps/curl-src",
+					"targetIndexes" : 
+					[
+						6
+					]
+				},
+				{
+					"build" : "_deps/curl-build/docs",
+					"childIndexes" : 
+					[
+						9
+					],
+					"hasInstallRule" : true,
+					"jsonFile" : "directory-_deps.curl-build.docs-Debug-499198797ba67a57d3aa.json",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.7"
+					},
+					"parentIndex" : 7,
+					"projectIndex" : 5,
+					"source" : "build/_deps/curl-src/docs",
+					"targetIndexes" : 
+					[
+						2,
+						3
+					]
+				},
+				{
+					"build" : "_deps/curl-build/docs/libcurl",
+					"childIndexes" : 
+					[
+						10
+					],
+					"hasInstallRule" : true,
+					"jsonFile" : "directory-_deps.curl-build.docs.libcurl-Debug-d61a176b9ac0b3a4d642.json",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.7"
+					},
+					"parentIndex" : 8,
+					"projectIndex" : 5,
+					"source" : "build/_deps/curl-src/docs/libcurl",
+					"targetIndexes" : 
+					[
+						4
+					]
+				},
+				{
+					"build" : "_deps/curl-build/docs/libcurl/opts",
+					"hasInstallRule" : true,
+					"jsonFile" : "directory-_deps.curl-build.docs.libcurl.opts-Debug-d19f071d4d56582c47d3.json",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.7"
+					},
+					"parentIndex" : 9,
+					"projectIndex" : 5,
+					"source" : "build/_deps/curl-src/docs/libcurl/opts",
+					"targetIndexes" : 
+					[
+						5
+					]
+				},
+				{
+					"build" : "_deps/curl-build/lib",
+					"hasInstallRule" : true,
+					"jsonFile" : "directory-_deps.curl-build.lib-Debug-cc5fed11ec422882e54d.json",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.7"
+					},
+					"parentIndex" : 7,
+					"projectIndex" : 5,
+					"source" : "build/_deps/curl-src/lib",
+					"targetIndexes" : 
+					[
+						7
+					]
+				},
+				{
+					"build" : "_deps/cpr-build/cpr",
+					"hasInstallRule" : true,
+					"jsonFile" : "directory-_deps.cpr-build.cpr-Debug-038821cb493e8893284b.json",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.15"
+					},
+					"parentIndex" : 5,
+					"projectIndex" : 3,
+					"source" : "build/_deps/cpr-src/cpr",
+					"targetIndexes" : 
+					[
+						1
+					]
+				},
+				{
+					"build" : "_deps/cpr-build/include",
+					"hasInstallRule" : true,
+					"jsonFile" : "directory-_deps.cpr-build.include-Debug-5e2b07a3e489942dc5fd.json",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.15"
+					},
+					"parentIndex" : 5,
+					"projectIndex" : 3,
+					"source" : "build/_deps/cpr-src/include"
+				}
+			],
+			"name" : "Debug",
+			"projects" : 
+			[
+				{
+					"abstractTargetIndexes" : 
+					[
+						0
+					],
+					"childIndexes" : 
+					[
+						1,
+						2,
+						3
+					],
+					"directoryIndexes" : 
+					[
+						0
+					],
+					"name" : "Beacon2_0",
+					"targetIndexes" : 
+					[
+						0
+					]
+				},
+				{
+					"abstractTargetIndexes" : 
+					[
+						4
+					],
+					"directoryIndexes" : 
+					[
+						1,
+						2,
+						3
+					],
+					"name" : "webview",
+					"parentIndex" : 0,
+					"targetIndexes" : 
+					[
+						8,
+						9
+					]
+				},
+				{
+					"abstractTargetIndexes" : 
+					[
+						3
+					],
+					"directoryIndexes" : 
+					[
+						4
+					],
+					"name" : "nlohmann_json",
+					"parentIndex" : 0
+				},
+				{
+					"childIndexes" : 
+					[
+						4,
+						5
+					],
+					"directoryIndexes" : 
+					[
+						5,
+						12,
+						13
+					],
+					"name" : "cpr",
+					"parentIndex" : 0,
+					"targetIndexes" : 
+					[
+						1
+					]
+				},
+				{
+					"directoryIndexes" : 
+					[
+						6
+					],
+					"name" : "zlib",
+					"parentIndex" : 3,
+					"targetIndexes" : 
+					[
+						10
+					]
+				},
+				{
+					"abstractTargetIndexes" : 
+					[
+						1,
+						2
+					],
+					"directoryIndexes" : 
+					[
+						7,
+						8,
+						9,
+						10,
+						11
+					],
+					"name" : "CURL",
+					"parentIndex" : 3,
+					"targetIndexes" : 
+					[
+						2,
+						3,
+						4,
+						5,
+						6,
+						7
+					]
+				}
+			],
+			"targets" : 
+			[
+				{
+					"directoryIndex" : 0,
+					"id" : "Beacon2_0::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-Beacon2_0-Debug-9c33a49a11a230cffb4d.json",
+					"name" : "Beacon2_0",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 12,
+					"id" : "cpr::@c4b08663df96993e8225",
+					"jsonFile" : "target-cpr-Debug-7e02016d39c7f1610c46.json",
+					"name" : "cpr",
+					"projectIndex" : 3
+				},
+				{
+					"directoryIndex" : 8,
+					"id" : "curl-generate-curl-config.1::@b114a9630f645e739f37",
+					"jsonFile" : "target-curl-generate-curl-config.1-Debug-56df0a267e061aa6a13e.json",
+					"name" : "curl-generate-curl-config.1",
+					"projectIndex" : 5
+				},
+				{
+					"directoryIndex" : 8,
+					"id" : "curl-generate-mk-ca-bundle.1::@b114a9630f645e739f37",
+					"jsonFile" : "target-curl-generate-mk-ca-bundle.1-Debug-87a14fd769c8db27415e.json",
+					"name" : "curl-generate-mk-ca-bundle.1",
+					"projectIndex" : 5
+				},
+				{
+					"directoryIndex" : 9,
+					"id" : "curl-man::@2578f1a13a47df1940c2",
+					"jsonFile" : "target-curl-man-Debug-be8090d7bdbd9831d1ef.json",
+					"name" : "curl-man",
+					"projectIndex" : 5
+				},
+				{
+					"directoryIndex" : 10,
+					"id" : "curl-opts-man::@fe02a9ef8a74f0774785",
+					"jsonFile" : "target-curl-opts-man-Debug-5ab5b033ed0005ce99e7.json",
+					"name" : "curl-opts-man",
+					"projectIndex" : 5
+				},
+				{
+					"directoryIndex" : 7,
+					"id" : "curl_uninstall::@b95861b2ba384b5171eb",
+					"jsonFile" : "target-curl_uninstall-Debug-a6e06d61c3ad0a29b7d3.json",
+					"name" : "curl_uninstall",
+					"projectIndex" : 5
+				},
+				{
+					"directoryIndex" : 11,
+					"id" : "libcurl_static::@7349aeacaff41deceb36",
+					"jsonFile" : "target-libcurl_static-Debug-13f29ace865065a455fc.json",
+					"name" : "libcurl_static",
+					"projectIndex" : 5
+				},
+				{
+					"directoryIndex" : 3,
+					"id" : "webview_core_shared::@48746d47efa01a0dbf4e",
+					"jsonFile" : "target-webview_core_shared-Debug-1a89c2c31fad20881fa3.json",
+					"name" : "webview_core_shared",
+					"projectIndex" : 1
+				},
+				{
+					"directoryIndex" : 3,
+					"id" : "webview_core_static::@48746d47efa01a0dbf4e",
+					"jsonFile" : "target-webview_core_static-Debug-4c583ada8226e120a3a4.json",
+					"name" : "webview_core_static",
+					"projectIndex" : 1
+				},
+				{
+					"directoryIndex" : 6,
+					"id" : "zlib::@c9556b0b6bf47963f9da",
+					"jsonFile" : "target-zlib-Debug-bdd7ad36e25770033f62.json",
+					"name" : "zlib",
+					"projectIndex" : 4
+				}
+			]
+		}
+	],
+	"kind" : "codemodel",
+	"paths" : 
+	{
+		"build" : "/Users/adafaralph/dev/Beacon2.0/build",
+		"source" : "/Users/adafaralph/dev/Beacon2.0"
+	},
+	"version" : 
+	{
+		"major" : 2,
+		"minor" : 10
+	}
+}

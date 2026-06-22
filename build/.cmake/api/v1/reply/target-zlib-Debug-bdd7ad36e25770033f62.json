@@ -1,0 +1,1035 @@
+{
+	"archive" : {},
+	"artifacts" : 
+	[
+		{
+			"path" : "_deps/zlib-build/libz.a"
+		}
+	],
+	"backtrace" : 1,
+	"backtraceGraph" : 
+	{
+		"commands" : 
+		[
+			"add_library",
+			"install",
+			"add_compile_options",
+			"add_definitions",
+			"cpr_option",
+			"target_include_directories"
+		],
+		"files" : 
+		[
+			"build/_deps/zlib-src/CMakeLists.txt",
+			"build/_deps/cpr-src/CMakeLists.txt"
+		],
+		"nodes" : 
+		[
+			{
+				"file" : 0
+			},
+			{
+				"command" : 0,
+				"file" : 0,
+				"line" : 1074,
+				"parent" : 0
+			},
+			{
+				"command" : 1,
+				"file" : 0,
+				"line" : 1204,
+				"parent" : 0
+			},
+			{
+				"command" : 2,
+				"file" : 0,
+				"line" : 281,
+				"parent" : 0
+			},
+			{
+				"command" : 2,
+				"file" : 0,
+				"line" : 499,
+				"parent" : 0
+			},
+			{
+				"command" : 3,
+				"file" : 0,
+				"line" : 640,
+				"parent" : 0
+			},
+			{
+				"command" : 3,
+				"file" : 0,
+				"line" : 568,
+				"parent" : 0
+			},
+			{
+				"command" : 3,
+				"file" : 0,
+				"line" : 654,
+				"parent" : 0
+			},
+			{
+				"command" : 3,
+				"file" : 0,
+				"line" : 666,
+				"parent" : 0
+			},
+			{
+				"file" : 1
+			},
+			{
+				"command" : 4,
+				"file" : 1,
+				"line" : 58,
+				"parent" : 9
+			},
+			{
+				"command" : 3,
+				"file" : 1,
+				"line" : 46,
+				"parent" : 10
+			},
+			{
+				"command" : 4,
+				"file" : 1,
+				"line" : 59,
+				"parent" : 9
+			},
+			{
+				"command" : 3,
+				"file" : 1,
+				"line" : 46,
+				"parent" : 12
+			},
+			{
+				"command" : 3,
+				"file" : 0,
+				"line" : 354,
+				"parent" : 0
+			},
+			{
+				"command" : 3,
+				"file" : 0,
+				"line" : 412,
+				"parent" : 0
+			},
+			{
+				"command" : 3,
+				"file" : 0,
+				"line" : 443,
+				"parent" : 0
+			},
+			{
+				"command" : 3,
+				"file" : 0,
+				"line" : 459,
+				"parent" : 0
+			},
+			{
+				"command" : 3,
+				"file" : 0,
+				"line" : 347,
+				"parent" : 0
+			},
+			{
+				"command" : 3,
+				"file" : 0,
+				"line" : 310,
+				"parent" : 0
+			},
+			{
+				"command" : 3,
+				"file" : 0,
+				"line" : 427,
+				"parent" : 0
+			},
+			{
+				"command" : 3,
+				"file" : 0,
+				"line" : 384,
+				"parent" : 0
+			},
+			{
+				"command" : 3,
+				"file" : 0,
+				"line" : 398,
+				"parent" : 0
+			},
+			{
+				"command" : 3,
+				"file" : 0,
+				"line" : 158,
+				"parent" : 0
+			},
+			{
+				"command" : 3,
+				"file" : 0,
+				"line" : 148,
+				"parent" : 0
+			},
+			{
+				"command" : 5,
+				"file" : 0,
+				"line" : 1089,
+				"parent" : 0
+			}
+		]
+	},
+	"codemodelVersion" : 
+	{
+		"major" : 2,
+		"minor" : 10
+	},
+	"compileGroups" : 
+	[
+		{
+			"compileCommandFragments" : 
+			[
+				{
+					"fragment" : "-g -std=c11 -arch arm64"
+				},
+				{
+					"backtrace" : 3,
+					"fragment" : "-Wall"
+				},
+				{
+					"backtrace" : 4,
+					"fragment" : "-DZLIB_DEBUG"
+				}
+			],
+			"defines" : 
+			[
+				{
+					"backtrace" : 5,
+					"define" : "ARM_ACLE"
+				},
+				{
+					"backtrace" : 6,
+					"define" : "ARM_FEATURES"
+				},
+				{
+					"backtrace" : 7,
+					"define" : "ARM_NEON"
+				},
+				{
+					"backtrace" : 8,
+					"define" : "ARM_NEON_HASLD4"
+				},
+				{
+					"backtrace" : 11,
+					"define" : "CPR_ENABLE_CURL_HTTP_ONLY"
+				},
+				{
+					"backtrace" : 13,
+					"define" : "CPR_ENABLE_SSL"
+				},
+				{
+					"backtrace" : 14,
+					"define" : "HAVE_ALIGNED_ALLOC"
+				},
+				{
+					"backtrace" : 15,
+					"define" : "HAVE_ATTRIBUTE_ALIGNED"
+				},
+				{
+					"backtrace" : 16,
+					"define" : "HAVE_BUILTIN_CTZ"
+				},
+				{
+					"backtrace" : 17,
+					"define" : "HAVE_BUILTIN_CTZLL"
+				},
+				{
+					"backtrace" : 18,
+					"define" : "HAVE_POSIX_MEMALIGN"
+				},
+				{
+					"backtrace" : 19,
+					"define" : "HAVE_SYS_SDT_H"
+				},
+				{
+					"backtrace" : 20,
+					"define" : "HAVE_THREAD_LOCAL"
+				},
+				{
+					"backtrace" : 21,
+					"define" : "HAVE_VISIBILITY_HIDDEN"
+				},
+				{
+					"backtrace" : 22,
+					"define" : "HAVE_VISIBILITY_INTERNAL"
+				},
+				{
+					"backtrace" : 23,
+					"define" : "WITH_GZFILEOP"
+				},
+				{
+					"backtrace" : 24,
+					"define" : "ZLIB_COMPAT"
+				}
+			],
+			"includes" : 
+			[
+				{
+					"backtrace" : 25,
+					"path" : "/Users/adafaralph/dev/Beacon2.0/build/_deps/zlib-build"
+				},
+				{
+					"backtrace" : 25,
+					"path" : "/Users/adafaralph/dev/Beacon2.0/build/_deps/zlib-src"
+				}
+			],
+			"language" : "C",
+			"languageStandard" : 
+			{
+				"backtraces" : 
+				[
+					1
+				],
+				"standard" : "11"
+			},
+			"sourceIndexes" : 
+			[
+				0,
+				1,
+				2,
+				3,
+				4,
+				5,
+				6,
+				7,
+				8,
+				9,
+				10,
+				11,
+				12,
+				13,
+				14,
+				15,
+				16,
+				17,
+				18,
+				19,
+				20,
+				21,
+				22,
+				23,
+				24,
+				25,
+				26,
+				28,
+				63,
+				64,
+				65
+			]
+		},
+		{
+			"compileCommandFragments" : 
+			[
+				{
+					"fragment" : "-g -std=c11 -arch arm64"
+				},
+				{
+					"backtrace" : 3,
+					"fragment" : "-Wall"
+				},
+				{
+					"backtrace" : 4,
+					"fragment" : "-DZLIB_DEBUG"
+				},
+				{
+					"fragment" : "-march=armv8-a+crc -fno-lto"
+				}
+			],
+			"defines" : 
+			[
+				{
+					"backtrace" : 5,
+					"define" : "ARM_ACLE"
+				},
+				{
+					"backtrace" : 6,
+					"define" : "ARM_FEATURES"
+				},
+				{
+					"backtrace" : 7,
+					"define" : "ARM_NEON"
+				},
+				{
+					"backtrace" : 8,
+					"define" : "ARM_NEON_HASLD4"
+				},
+				{
+					"backtrace" : 11,
+					"define" : "CPR_ENABLE_CURL_HTTP_ONLY"
+				},
+				{
+					"backtrace" : 13,
+					"define" : "CPR_ENABLE_SSL"
+				},
+				{
+					"backtrace" : 14,
+					"define" : "HAVE_ALIGNED_ALLOC"
+				},
+				{
+					"backtrace" : 15,
+					"define" : "HAVE_ATTRIBUTE_ALIGNED"
+				},
+				{
+					"backtrace" : 16,
+					"define" : "HAVE_BUILTIN_CTZ"
+				},
+				{
+					"backtrace" : 17,
+					"define" : "HAVE_BUILTIN_CTZLL"
+				},
+				{
+					"backtrace" : 18,
+					"define" : "HAVE_POSIX_MEMALIGN"
+				},
+				{
+					"backtrace" : 19,
+					"define" : "HAVE_SYS_SDT_H"
+				},
+				{
+					"backtrace" : 20,
+					"define" : "HAVE_THREAD_LOCAL"
+				},
+				{
+					"backtrace" : 21,
+					"define" : "HAVE_VISIBILITY_HIDDEN"
+				},
+				{
+					"backtrace" : 22,
+					"define" : "HAVE_VISIBILITY_INTERNAL"
+				},
+				{
+					"backtrace" : 23,
+					"define" : "WITH_GZFILEOP"
+				},
+				{
+					"backtrace" : 24,
+					"define" : "ZLIB_COMPAT"
+				}
+			],
+			"includes" : 
+			[
+				{
+					"backtrace" : 25,
+					"path" : "/Users/adafaralph/dev/Beacon2.0/build/_deps/zlib-build"
+				},
+				{
+					"backtrace" : 25,
+					"path" : "/Users/adafaralph/dev/Beacon2.0/build/_deps/zlib-src"
+				}
+			],
+			"language" : "C",
+			"languageStandard" : 
+			{
+				"backtraces" : 
+				[
+					1
+				],
+				"standard" : "11"
+			},
+			"sourceIndexes" : 
+			[
+				29,
+				30
+			]
+		},
+		{
+			"compileCommandFragments" : 
+			[
+				{
+					"fragment" : "-g -std=c11 -arch arm64"
+				},
+				{
+					"backtrace" : 3,
+					"fragment" : "-Wall"
+				},
+				{
+					"backtrace" : 4,
+					"fragment" : "-DZLIB_DEBUG"
+				},
+				{
+					"fragment" : "-march=armv8-a+simd -fno-lto"
+				}
+			],
+			"defines" : 
+			[
+				{
+					"backtrace" : 5,
+					"define" : "ARM_ACLE"
+				},
+				{
+					"backtrace" : 6,
+					"define" : "ARM_FEATURES"
+				},
+				{
+					"backtrace" : 7,
+					"define" : "ARM_NEON"
+				},
+				{
+					"backtrace" : 8,
+					"define" : "ARM_NEON_HASLD4"
+				},
+				{
+					"backtrace" : 11,
+					"define" : "CPR_ENABLE_CURL_HTTP_ONLY"
+				},
+				{
+					"backtrace" : 13,
+					"define" : "CPR_ENABLE_SSL"
+				},
+				{
+					"backtrace" : 14,
+					"define" : "HAVE_ALIGNED_ALLOC"
+				},
+				{
+					"backtrace" : 15,
+					"define" : "HAVE_ATTRIBUTE_ALIGNED"
+				},
+				{
+					"backtrace" : 16,
+					"define" : "HAVE_BUILTIN_CTZ"
+				},
+				{
+					"backtrace" : 17,
+					"define" : "HAVE_BUILTIN_CTZLL"
+				},
+				{
+					"backtrace" : 18,
+					"define" : "HAVE_POSIX_MEMALIGN"
+				},
+				{
+					"backtrace" : 19,
+					"define" : "HAVE_SYS_SDT_H"
+				},
+				{
+					"backtrace" : 20,
+					"define" : "HAVE_THREAD_LOCAL"
+				},
+				{
+					"backtrace" : 21,
+					"define" : "HAVE_VISIBILITY_HIDDEN"
+				},
+				{
+					"backtrace" : 22,
+					"define" : "HAVE_VISIBILITY_INTERNAL"
+				},
+				{
+					"backtrace" : 23,
+					"define" : "WITH_GZFILEOP"
+				},
+				{
+					"backtrace" : 24,
+					"define" : "ZLIB_COMPAT"
+				}
+			],
+			"includes" : 
+			[
+				{
+					"backtrace" : 25,
+					"path" : "/Users/adafaralph/dev/Beacon2.0/build/_deps/zlib-build"
+				},
+				{
+					"backtrace" : 25,
+					"path" : "/Users/adafaralph/dev/Beacon2.0/build/_deps/zlib-src"
+				}
+			],
+			"language" : "C",
+			"languageStandard" : 
+			{
+				"backtraces" : 
+				[
+					1
+				],
+				"standard" : "11"
+			},
+			"sourceIndexes" : 
+			[
+				31,
+				32,
+				33,
+				34
+			]
+		}
+	],
+	"id" : "zlib::@c9556b0b6bf47963f9da",
+	"install" : 
+	{
+		"destinations" : 
+		[
+			{
+				"backtrace" : 2,
+				"path" : "lib"
+			}
+		],
+		"prefix" : 
+		{
+			"path" : "/usr/local"
+		}
+	},
+	"name" : "zlib",
+	"nameOnDisk" : "libz.a",
+	"paths" : 
+	{
+		"build" : "_deps/zlib-build",
+		"source" : "build/_deps/zlib-src"
+	},
+	"sourceGroups" : 
+	[
+		{
+			"name" : "Source Files",
+			"sourceIndexes" : 
+			[
+				0,
+				1,
+				2,
+				3,
+				4,
+				5,
+				6,
+				7,
+				8,
+				9,
+				10,
+				11,
+				12,
+				13,
+				14,
+				15,
+				16,
+				17,
+				18,
+				19,
+				20,
+				21,
+				22,
+				23,
+				24,
+				25,
+				26,
+				28,
+				29,
+				30,
+				31,
+				32,
+				33,
+				34,
+				63,
+				64,
+				65
+			]
+		},
+		{
+			"name" : "Header Files",
+			"sourceIndexes" : 
+			[
+				27,
+				35,
+				36,
+				37,
+				38,
+				39,
+				40,
+				41,
+				42,
+				43,
+				44,
+				45,
+				46,
+				47,
+				48,
+				49,
+				50,
+				51,
+				52,
+				53,
+				54,
+				55,
+				56,
+				57,
+				58,
+				59,
+				60,
+				61,
+				62
+			]
+		}
+	],
+	"sources" : 
+	[
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "build/_deps/zlib-src/adler32.c",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "build/_deps/zlib-src/adler32_fold.c",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "build/_deps/zlib-src/chunkset.c",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "build/_deps/zlib-src/compare256.c",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "build/_deps/zlib-src/compress.c",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "build/_deps/zlib-src/cpu_features.c",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "build/_deps/zlib-src/crc32_braid.c",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "build/_deps/zlib-src/crc32_braid_comb.c",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "build/_deps/zlib-src/crc32_fold.c",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "build/_deps/zlib-src/deflate.c",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "build/_deps/zlib-src/deflate_fast.c",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "build/_deps/zlib-src/deflate_huff.c",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "build/_deps/zlib-src/deflate_medium.c",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "build/_deps/zlib-src/deflate_quick.c",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "build/_deps/zlib-src/deflate_rle.c",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "build/_deps/zlib-src/deflate_slow.c",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "build/_deps/zlib-src/deflate_stored.c",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "build/_deps/zlib-src/functable.c",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "build/_deps/zlib-src/infback.c",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "build/_deps/zlib-src/inflate.c",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "build/_deps/zlib-src/inftrees.c",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "build/_deps/zlib-src/insert_string.c",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "build/_deps/zlib-src/insert_string_roll.c",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "build/_deps/zlib-src/slide_hash.c",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "build/_deps/zlib-src/trees.c",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "build/_deps/zlib-src/uncompr.c",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "build/_deps/zlib-src/zutil.c",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"path" : "build/_deps/zlib-src/arch/arm/arm_features.h",
+			"sourceGroupIndex" : 1
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "build/_deps/zlib-src/arch/arm/arm_features.c",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 1,
+			"path" : "build/_deps/zlib-src/arch/arm/crc32_acle.c",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 1,
+			"path" : "build/_deps/zlib-src/arch/arm/insert_string_acle.c",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 2,
+			"path" : "build/_deps/zlib-src/arch/arm/adler32_neon.c",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 2,
+			"path" : "build/_deps/zlib-src/arch/arm/chunkset_neon.c",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 2,
+			"path" : "build/_deps/zlib-src/arch/arm/compare256_neon.c",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 2,
+			"path" : "build/_deps/zlib-src/arch/arm/slide_hash_neon.c",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"path" : "build/_deps/zlib-build/zconf.h",
+			"sourceGroupIndex" : 1
+		},
+		{
+			"backtrace" : 1,
+			"path" : "build/_deps/zlib-build/zlib_name_mangling.h",
+			"sourceGroupIndex" : 1
+		},
+		{
+			"backtrace" : 1,
+			"path" : "build/_deps/zlib-build/zlib.h",
+			"sourceGroupIndex" : 1
+		},
+		{
+			"backtrace" : 1,
+			"path" : "build/_deps/zlib-src/adler32_p.h",
+			"sourceGroupIndex" : 1
+		},
+		{
+			"backtrace" : 1,
+			"path" : "build/_deps/zlib-src/chunkset_tpl.h",
+			"sourceGroupIndex" : 1
+		},
+		{
+			"backtrace" : 1,
+			"path" : "build/_deps/zlib-src/compare256_rle.h",
+			"sourceGroupIndex" : 1
+		},
+		{
+			"backtrace" : 1,
+			"path" : "build/_deps/zlib-src/cpu_features.h",
+			"sourceGroupIndex" : 1
+		},
+		{
+			"backtrace" : 1,
+			"path" : "build/_deps/zlib-src/crc32_braid_p.h",
+			"sourceGroupIndex" : 1
+		},
+		{
+			"backtrace" : 1,
+			"path" : "build/_deps/zlib-src/crc32_braid_comb_p.h",
+			"sourceGroupIndex" : 1
+		},
+		{
+			"backtrace" : 1,
+			"path" : "build/_deps/zlib-src/crc32_braid_tbl.h",
+			"sourceGroupIndex" : 1
+		},
+		{
+			"backtrace" : 1,
+			"path" : "build/_deps/zlib-src/crc32_fold.h",
+			"sourceGroupIndex" : 1
+		},
+		{
+			"backtrace" : 1,
+			"path" : "build/_deps/zlib-src/deflate.h",
+			"sourceGroupIndex" : 1
+		},
+		{
+			"backtrace" : 1,
+			"path" : "build/_deps/zlib-src/deflate_p.h",
+			"sourceGroupIndex" : 1
+		},
+		{
+			"backtrace" : 1,
+			"path" : "build/_deps/zlib-src/functable.h",
+			"sourceGroupIndex" : 1
+		},
+		{
+			"backtrace" : 1,
+			"path" : "build/_deps/zlib-src/inffast_tpl.h",
+			"sourceGroupIndex" : 1
+		},
+		{
+			"backtrace" : 1,
+			"path" : "build/_deps/zlib-src/inffixed_tbl.h",
+			"sourceGroupIndex" : 1
+		},
+		{
+			"backtrace" : 1,
+			"path" : "build/_deps/zlib-src/inflate.h",
+			"sourceGroupIndex" : 1
+		},
+		{
+			"backtrace" : 1,
+			"path" : "build/_deps/zlib-src/inflate_p.h",
+			"sourceGroupIndex" : 1
+		},
+		{
+			"backtrace" : 1,
+			"path" : "build/_deps/zlib-src/inftrees.h",
+			"sourceGroupIndex" : 1
+		},
+		{
+			"backtrace" : 1,
+			"path" : "build/_deps/zlib-src/insert_string_tpl.h",
+			"sourceGroupIndex" : 1
+		},
+		{
+			"backtrace" : 1,
+			"path" : "build/_deps/zlib-src/match_tpl.h",
+			"sourceGroupIndex" : 1
+		},
+		{
+			"backtrace" : 1,
+			"path" : "build/_deps/zlib-src/trees.h",
+			"sourceGroupIndex" : 1
+		},
+		{
+			"backtrace" : 1,
+			"path" : "build/_deps/zlib-src/trees_emit.h",
+			"sourceGroupIndex" : 1
+		},
+		{
+			"backtrace" : 1,
+			"path" : "build/_deps/zlib-src/trees_tbl.h",
+			"sourceGroupIndex" : 1
+		},
+		{
+			"backtrace" : 1,
+			"path" : "build/_deps/zlib-src/zbuild.h",
+			"sourceGroupIndex" : 1
+		},
+		{
+			"backtrace" : 1,
+			"path" : "build/_deps/zlib-src/zendian.h",
+			"sourceGroupIndex" : 1
+		},
+		{
+			"backtrace" : 1,
+			"path" : "build/_deps/zlib-src/zutil.h",
+			"sourceGroupIndex" : 1
+		},
+		{
+			"backtrace" : 1,
+			"path" : "build/_deps/zlib-src/gzguts.h",
+			"sourceGroupIndex" : 1
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "build/_deps/zlib-src/gzlib.c",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "build/_deps/zlib-build/gzread.c",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "build/_deps/zlib-src/gzwrite.c",
+			"sourceGroupIndex" : 0
+		}
+	],
+	"type" : "STATIC_LIBRARY"
+}

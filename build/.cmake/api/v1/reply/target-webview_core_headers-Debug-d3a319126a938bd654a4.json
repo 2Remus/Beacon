@@ -1,0 +1,59 @@
+{
+	"abstract" : true,
+	"backtrace" : 1,
+	"backtraceGraph" : 
+	{
+		"commands" : 
+		[
+			"add_library",
+			"target_link_libraries"
+		],
+		"files" : 
+		[
+			"build/_deps/webview-src/core/CMakeLists.txt"
+		],
+		"nodes" : 
+		[
+			{
+				"file" : 0
+			},
+			{
+				"command" : 0,
+				"file" : 0,
+				"line" : 2,
+				"parent" : 0
+			},
+			{
+				"command" : 1,
+				"file" : 0,
+				"line" : 9,
+				"parent" : 0
+			}
+		]
+	},
+	"codemodelVersion" : 
+	{
+		"major" : 2,
+		"minor" : 10
+	},
+	"id" : "webview_core_headers::@48746d47efa01a0dbf4e",
+	"interfaceLinkLibraries" : 
+	[
+		{
+			"backtrace" : 2,
+			"fragment" : "-framework WebKit"
+		},
+		{
+			"backtrace" : 2,
+			"fragment" : "dl"
+		}
+	],
+	"name" : "webview_core_headers",
+	"paths" : 
+	{
+		"build" : "_deps/webview-build/core",
+		"source" : "build/_deps/webview-src/core"
+	},
+	"sources" : [],
+	"type" : "INTERFACE_LIBRARY"
+}

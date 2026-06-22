@@ -1,0 +1,26 @@
+{
+  "name": "interface2",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "postbuild": "node ./postbuild.js ./dist/index.html ./dist/index_html.h",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "pinia": "^3.0.4",
+    "vue": "^3.5.30",
+    "vue-router": "^5.0.3"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-vue": "^6.0.4",
+    "vite": "^7.3.1",
+    "vite-plugin-singlefile": "^2.3.3",
+    "vite-plugin-vue-devtools": "^8.0.7"
+  },
+  "engines": {
+    "node": "^20.19.0 || >=22.12.0"
+  }
+}

@@ -1,0 +1,46 @@
+{
+	"sources" : 
+	[
+		{
+			"file" : "/Users/adafaralph/dev/Beacon2.0/build/_deps/webview-subbuild/CMakeFiles/webview-populate"
+		},
+		{
+			"file" : "/Users/adafaralph/dev/Beacon2.0/build/_deps/webview-subbuild/CMakeFiles/webview-populate.rule"
+		},
+		{
+			"file" : "/Users/adafaralph/dev/Beacon2.0/build/_deps/webview-subbuild/CMakeFiles/webview-populate-complete.rule"
+		},
+		{
+			"file" : "/Users/adafaralph/dev/Beacon2.0/build/_deps/webview-subbuild/webview-populate-prefix/src/webview-populate-stamp/webview-populate-build.rule"
+		},
+		{
+			"file" : "/Users/adafaralph/dev/Beacon2.0/build/_deps/webview-subbuild/webview-populate-prefix/src/webview-populate-stamp/webview-populate-configure.rule"
+		},
+		{
+			"file" : "/Users/adafaralph/dev/Beacon2.0/build/_deps/webview-subbuild/webview-populate-prefix/src/webview-populate-stamp/webview-populate-download.rule"
+		},
+		{
+			"file" : "/Users/adafaralph/dev/Beacon2.0/build/_deps/webview-subbuild/webview-populate-prefix/src/webview-populate-stamp/webview-populate-install.rule"
+		},
+		{
+			"file" : "/Users/adafaralph/dev/Beacon2.0/build/_deps/webview-subbuild/webview-populate-prefix/src/webview-populate-stamp/webview-populate-mkdir.rule"
+		},
+		{
+			"file" : "/Users/adafaralph/dev/Beacon2.0/build/_deps/webview-subbuild/webview-populate-prefix/src/webview-populate-stamp/webview-populate-patch.rule"
+		},
+		{
+			"file" : "/Users/adafaralph/dev/Beacon2.0/build/_deps/webview-subbuild/webview-populate-prefix/src/webview-populate-stamp/webview-populate-test.rule"
+		},
+		{
+			"file" : "/Users/adafaralph/dev/Beacon2.0/build/_deps/webview-subbuild/webview-populate-prefix/src/webview-populate-stamp/webview-populate-update.rule"
+		}
+	],
+	"target" : 
+	{
+		"labels" : 
+		[
+			"webview-populate"
+		],
+		"name" : "webview-populate"
+	}
+}
