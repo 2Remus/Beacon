@@ -4,7 +4,7 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="BackendCodeEditorMiscSettings">
-    <option name="/Default/Environment/Hierarchy/GeneratedFilesCacheKey/Timestamp/@EntryValue" value="3" type="long" />
+    <option name="/Default/Environment/Hierarchy/GeneratedFilesCacheKey/Timestamp/@EntryValue" value="4" type="long" />
   </component>
   <component name="CMakePresetLoader">{
   &quot;useNewFormat&quot;: true
@@ -37,11 +37,11 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="97cd4f1a-0bc6-40c9-90b4-7cb560422263" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/core/containers/containers.cpp" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/CMakeLists.txt" beforeDir="false" afterPath="$PROJECT_DIR$/CMakeLists.txt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/core/containers/container.h" beforeDir="false" afterPath="$PROJECT_DIR$/core/containers/container.h" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/core/containers/containers.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/core/containers/containers.cpp" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/core/servers/add_server.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/core/servers/add_server.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/core/servers/serverEntity.h" beforeDir="false" afterPath="$PROJECT_DIR$/core/servers/serverEntity.h" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/core/utils/utils.h" beforeDir="false" afterPath="$PROJECT_DIR$/core/utils/utils.h" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -121,9 +121,9 @@
     </key>
   </component>
   <component name="RunManager" selected="CMake Application.Beacon2_0">
-    <configuration default="true" type="CLionExternalRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" PASS_PARENT_ENVS_2="true">
+    <configuration name="Beacon2_0" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="Beacon2_0" TARGET_NAME="Beacon2_0" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="Beacon2_0" RUN_TARGET_NAME="Beacon2_0">
       <method v="2">
-        <option name="CLION.EXTERNAL.BUILD" enabled="true" />
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
       </method>
     </configuration>
     <configuration name="Beacon2_0" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="Beacon2_0" TARGET_NAME="Beacon2_0" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="Beacon2_0" RUN_TARGET_NAME="Beacon2_0">
@@ -131,7 +131,7 @@
         <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
       </method>
     </configuration>
-    <configuration name="Beacon2_0" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="Beacon2_0" TARGET_NAME="Beacon2_0" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="Beacon2_0" RUN_TARGET_NAME="Beacon2_0">
+    <configuration default="true" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" PASS_PARENT_ENVS_2="true">
       <method v="2">
         <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
       </method>
@@ -319,7 +319,8 @@
       <workItem from="1782004789673" duration="23881000" />
       <workItem from="1782082999009" duration="8277000" />
       <workItem from="1782133111618" duration="2276000" />
-      <workItem from="1782147629894" duration="7111000" />
+      <workItem from="1782147629894" duration="9605000" />
+      <workItem from="1782165340183" duration="7191000" />
     </task>
     <servers />
   </component>

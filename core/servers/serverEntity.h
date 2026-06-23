@@ -26,6 +26,7 @@ class serverEntity {
     std::optional<std::string> world;
     std::optional<std::int32_t> port;
     std::optional<std::int32_t> ram;
+    bool online_mode;
 
 };
 
