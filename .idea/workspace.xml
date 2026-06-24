@@ -37,9 +37,10 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="97cd4f1a-0bc6-40c9-90b4-7cb560422263" name="Changes" comment="">
+      <change afterPath="$PROJECT_DIR$/core/servers/get_servers.cpp" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/CMakeLists.txt" beforeDir="false" afterPath="$PROJECT_DIR$/CMakeLists.txt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/core/servers/add_server.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/core/servers/add_server.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/core/servers/serverEntity.h" beforeDir="false" afterPath="$PROJECT_DIR$/core/servers/serverEntity.h" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -317,7 +318,7 @@
       <workItem from="1782082999009" duration="8277000" />
       <workItem from="1782133111618" duration="2276000" />
       <workItem from="1782147629894" duration="9605000" />
-      <workItem from="1782165340183" duration="12411000" />
+      <workItem from="1782165340183" duration="17109000" />
     </task>
     <servers />
   </component>
@@ -337,7 +338,7 @@
   <component name="XDebuggerManager">
     <breakpoint-manager>
       <breakpoints>
-        <line-breakpoint enabled="true" type="com.jetbrains.cidr.execution.debugger.OCBreakpointType">
+        <line-breakpoint suspend="NONE" type="com.jetbrains.cidr.execution.debugger.OCBreakpointType">
           <url>file://$PROJECT_DIR$/core/servers/add_server.cpp</url>
           <line>4</line>
           <option name="timeStamp" value="1" />

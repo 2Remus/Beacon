@@ -11,6 +11,8 @@
 #include <fstream>
 
 namespace fs = std::filesystem;
+namespace jlib = nlohmann;
+
 
 std::string db_init(const std::string& data_dir) {
     std::string resource_dir = get_resource_path(data_dir);
@@ -79,7 +81,7 @@ std::string& data_dir
     std::ofstream dbstream(db_path);
 
     //turn struct into var json type
-    nlohmann::json t = server;
+    jlib::json t = server;
 
     if (dbstream.is_open()) {
         //write to json
@@ -89,8 +91,6 @@ std::string& data_dir
 }
 
 
-nlohmann::json get_servers() {
-    //get servers
-}
+
 
 
