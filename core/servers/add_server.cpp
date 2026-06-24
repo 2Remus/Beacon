@@ -83,13 +83,14 @@ std::string& data_dir
 
     if (dbstream.is_open()) {
         //write to json
-
         dbstream << t.dump(4);
+        dbstream.close();
     }
+}
 
 
-
-
+nlohmann::json get_servers() {
+    //get servers
 }
 
 

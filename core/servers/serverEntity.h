@@ -5,6 +5,7 @@
 #ifndef BEACON2_0_SERVERENTITY_H
 #define BEACON2_0_SERVERENTITY_H
 #include <string>
+#include "nlohmann/json.hpp"
 
 
 enum Provider {
@@ -13,6 +14,14 @@ enum Provider {
     Fabric,
     Forge,
 };
+
+NLOHMANN_JSON_SERIALIZE_ENUM(Provider,{
+    {Vanilla, "Vanilla"},
+    {Paper, "Paper"},
+    {Fabric, "Fabric"},
+    {Forge, "Forge"}
+})
+
 
 
 class serverEntity {
@@ -30,7 +39,18 @@ class serverEntity {
 
 };
 
-
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(serverEntity,
+    id,
+    name,
+    instance_path,
+    version,
+    status,
+    provider,
+    world,
+    port,
+    ram,
+    online_mode
+)
 
 
 #endif //BEACON2_0_SERVERENTITY_H
