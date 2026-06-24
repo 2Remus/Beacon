@@ -147,7 +147,7 @@ const attachLogListener = async (id) => {
 const fetchServers = async () => {
     isLoading.value = true
     try {
-        const freshData = await window.electron.getServers()
+        const freshData = await window.getServers()
 
         // Instead of instances.value = freshData, we map and preserve
         instances.value = freshData.map((newServer) => {

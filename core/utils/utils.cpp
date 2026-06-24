@@ -40,7 +40,7 @@ std::string ensure_jar_exists(const std::string& path, const std::string& versio
         return target_file_path.string();
     }
 
-    std::string download_url = "";
+    std::string download_url;
 
     // Determine download URL based on Provider
     switch(provider) {
