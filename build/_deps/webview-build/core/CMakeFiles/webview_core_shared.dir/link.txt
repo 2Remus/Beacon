@@ -1,1 +1,0 @@
-/usr/bin/clang++ -g -arch arm64 -dynamiclib -Wl,-headerpad_max_install_names -compatibility_version 0.12.0 -current_version 0.12.0 -o libwebviewd.0.12.0.dylib -install_name @rpath/libwebviewd.0.12.dylib CMakeFiles/webview_core_shared.dir/src/webview.cc.o  -framework WebKit -ldl
