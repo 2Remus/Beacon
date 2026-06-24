@@ -1,0 +1,12 @@
+# Force GitHub to count C++ files even if they are on a side branch
+*.cpp linguist-detectable=true
+*.h linguist-detectable=true
+*.hpp linguist-detectable=true
+
+# If you want to hide the Vue/JS build artifacts from the stats
+dist/** linguist-vendored
+build/** linguist-vendored
+
+# If you want GitHub to completely ignore specific directories for statistics
+# (Like a legacy folder or dependency folders)
+path/to/ignored/dir/* linguist-documentation=false
