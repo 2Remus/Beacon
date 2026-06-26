@@ -12,7 +12,7 @@
 namespace fs = std::filesystem;
 namespace jlib = nlohmann;
 
-jlib::json get_servers(const std::string& data_dir) {
+std::vector<serverEntity> get_servers(const std::string& data_dir) {
     //get servers
     std::string db_path_string = get_resource_path(data_dir);
     fs::path db_path(db_path_string);

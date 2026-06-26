@@ -43,8 +43,6 @@ bool online_mode,
 std::string& data_dir
 ) {
 
-
-
     //get the jar path
         // download the jar if it doesnt exist or use it from cache if it does
     // create a container (folder server instance)

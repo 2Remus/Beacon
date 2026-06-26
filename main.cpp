@@ -14,11 +14,11 @@ int main() {
     main_window.set_html(html_content);
     main_window.run();
 
-    // try {
-    //     //main_window.bind("getServers", get_servers);
-    // }catch (std::exception& e) {
-    //     std::cerr << e.what() << std::endl;
-    // }
+    try {
+        main_window.bind("getServers", get_servers);
+    }catch (std::exception& e) {
+        std::cerr << e.what() << std::endl;
+    }
 
     return 0;
 }
