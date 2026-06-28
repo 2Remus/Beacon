@@ -16,7 +16,7 @@ std::string create_container(Container& container, const std::string& data_dir, 
     //logs, world,
     //server properties
 
-    std::string container_path = get_resource_path(data_dir);
+    std::string container_path = get_resource_path();
     fs::path containder_dir(container_path);
 
     fs::path server_dir = containder_dir / container.server_id;

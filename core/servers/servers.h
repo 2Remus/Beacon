@@ -11,6 +11,6 @@ namespace jlib = nlohmann;
 
 void add_server();
 
-jlib::json get_servers(const std::string& data_dir);
+jlib::json get_servers();
 
 #endif //BEACON2_0_SERVERS_H

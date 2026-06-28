@@ -12,8 +12,9 @@ namespace fs = std::filesystem;
 
 // Removed empty globals. Better to keep paths localized or passed cleanly.
 
-std::string get_resource_path(const std::string_view path) {
-    fs::path my_path(path);
+std::string get_resource_path() {
+    fs::path my_path = fs::current_path();
+    //fs::path my_path(path);
 #if defined(_WIN32) || defined(_WIN64)
     my_path /= "resources";
 #else

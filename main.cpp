@@ -12,13 +12,17 @@ int main() {
     const std::string html_content(reinterpret_cast<const char*>(INDEX_HTML_BYTES), INDEX_HTML_SIZE);
 
     main_window.set_html(html_content);
-    main_window.run();
+
 
     try {
-        main_window.bind("getServers", get_servers);
+        main_window.bind("getServers", [](const std::string& req) -> std::string {
+            nlohmann::json servers = get_servers().dump();
+
+            return servers;
+        });
     }catch (std::exception& e) {
         std::cerr << e.what() << std::endl;
     }
-
+    main_window.run();
     return 0;
 }

@@ -15,7 +15,7 @@ namespace jlib = nlohmann;
 
 
 std::string db_init(const std::string& data_dir) {
-    std::string resource_dir = get_resource_path(data_dir);
+    std::string resource_dir = get_resource_path();
     fs::path resource_path(resource_dir);
 
     //define db file
@@ -47,7 +47,7 @@ std::string& data_dir
         // download the jar if it doesnt exist or use it from cache if it does
     // create a container (folder server instance)
     //add server to json db
-    std::string resource_dir = get_resource_path(data_dir);
+    std::string resource_dir = get_resource_path();
     std::string jar_path = ensure_jar_exists(resource_dir, version, provider);
 
 

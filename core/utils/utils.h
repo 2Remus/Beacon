@@ -9,6 +9,6 @@
 
 std::string ensure_jar_exists(const std::string& path, const std::string& version, Provider provider);
 
-std::filesystem::path get_resource_path(std::string_view path);
+std::filesystem::path get_resource_path();
 
 #endif //BEACON2_0_UTILS_H
